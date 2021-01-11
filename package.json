@@ -3,18 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "dev": "set ANALYZE=false && next dev",
+    "build": "set ANALYZE=false && next build",
+    "start": "set ANALYZE=false && next start",
+    "analyze": "set ANALYZE=true && next build"
   },
   "dependencies": {
+    "@next/bundle-analyzer": "^10.0.5",
+    "bootstrap": "^4.5.3",
     "next": "10.0.5",
     "react": "17.0.1",
+    "react-bootstrap": "^1.4.3",
     "react-dom": "17.0.1"
   },
   "devDependencies": {
     "@types/node": "^14.14.20",
     "@types/react": "^17.0.0",
+    "@typescript-eslint/eslint-plugin": "^4.12.0",
+    "@typescript-eslint/parser": "^4.12.0",
+    "@zeit/next-css": "^1.0.1",
+    "eslint": "^7.17.0",
+    "eslint-plugin-react": "^7.22.0",
+    "next-purgecss": "^4.0.0",
     "typescript": "^4.1.3"
   }
 }
