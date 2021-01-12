@@ -92,6 +92,9 @@ video {
   vertical-align: baseline;
 }
 
+button {
+  outline: none !important;
+}
 /* make sure to set some focus styles for accessibility */
 :focus {
   outline: 0;
