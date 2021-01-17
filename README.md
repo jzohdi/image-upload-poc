@@ -27,6 +27,8 @@ In a first iteration (V0) of this POC I set up the implementation with pure Fire
 
 #### Firestore permissions
 
+This could be deveolped further with this nextjs [with-firebase-authentication](https://github.com/vercel/next.js/tree/canary/examples/with-firebase-authentication) example
+
 The "galleries" collection can be described as following
 
 ```typescript

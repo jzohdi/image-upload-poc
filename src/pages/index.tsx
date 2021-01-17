@@ -8,24 +8,8 @@ import Container from "react-bootstrap/Container";
 import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
 import Image from "next/image";
-import { GALLERY_COLLECTION } from "../types";
-
-type Image = {
-  value: string;
-  createdAt: TimeStamp;
-  dimensions: {
-    w: number;
-    h: number;
-  };
-};
-
-type Gallery = {
-  createdAt: TimeStamp;
-  disabled: boolean;
-  images: {
-    [key: string]: Image;
-  };
-};
+import Link from "next/link";
+import { GALLERY_COLLECTION, Gallery } from "../types";
 
 export default function Home() {
   const [galleries, setGalleries] = useState<Gallery[]>([]);
@@ -63,7 +47,7 @@ export default function Home() {
   useEffect(() => {
     db.collection(GALLERY_COLLECTION).onSnapshot((snapshot) => {
       const galleries = snapshot.docs.map((doc) => {
-        return doc.data();
+        return { id: doc.id, ...doc.data() };
       }) as Gallery[];
       setGalleries(
         galleries.sort((o1, o2) => o1.createdAt.seconds - o2.createdAt.seconds)
@@ -87,6 +71,7 @@ export default function Home() {
           />
           {galleries.length === 0 && <h2>No sessions have been created yet</h2>}
           {galleries.map((gallery, index) => {
+            console.log(gallery);
             return (
               <section>
                 <Spacer height={50} />
@@ -107,7 +92,11 @@ function GalleryPreview({ gallery }: { gallery: Gallery }) {
   const images = Object.entries(gallery.images);
   return (
     <div>
-      <h2>{gallery.createdAt.toDate().toLocaleDateString()}</h2>
+      <Link href={`/session/${gallery.id}`}>
+        <a>
+          <h2>{gallery.createdAt.toDate().toLocaleDateString()}</h2>
+        </a>
+      </Link>
       <Spacer height={24} />
       {images.length === 0 && (
         <h3>No Images have been uploaded to this gallery yet. </h3>
