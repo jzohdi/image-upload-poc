@@ -15,6 +15,7 @@ export type GalleryImage = {
 
 export type Gallery = {
   id: string;
+  value: string;
   createdAt: TimeStamp;
   disabled: boolean;
 };

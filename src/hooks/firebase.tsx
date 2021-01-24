@@ -1,3 +1,4 @@
+import { createContext, useContext, PropsWithChildren } from "react";
 import { useState, useEffect, useRef } from "react";
 import firebase from "firebase/app";
 import "firebase/auth";
@@ -14,9 +15,6 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-import { createContext, useContext, PropsWithChildren } from "react";
-import { userInfo } from "os";
-
 type FirebaseUser = firebase.User;
 
 type FireBaseApps = {
@@ -29,6 +27,7 @@ const FirebaseContext = createContext<FireBaseApps>({
   db,
 });
 
+export type SnapshotSub = () => void;
 export type TimeStamp = firebase.firestore.Timestamp;
 
 export function FirebaseProvider({ children }: PropsWithChildren<{}>) {
