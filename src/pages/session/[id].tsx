@@ -9,7 +9,7 @@ import ImageWrapper from "../../components/ImageWrapper";
 import { Spacer } from "../../components/utils";
 import { toBase64, toDataURL } from "../../utils";
 // libs
-import { MarkerArea } from "markerjs2";
+import { MarkerArea, MarkerAreaState } from "markerjs2";
 //bootstrap-react
 import Button from "react-bootstrap/Button";
 import Container from "react-bootstrap/Container";
@@ -20,7 +20,6 @@ import Tabs from "react-bootstrap/Tabs";
 //next
 import ErrorPage from "next/error";
 import Image from "next/image";
-import image from "next/image";
 
 type SessionPageProps = {
   id?: string;
@@ -55,7 +54,10 @@ type FileUpload = {
   error?: string;
 };
 
+let marker: MarkerArea | null;
+
 function SessionPage({ id }: SessionPageProps) {
+  const [currTab, setCurrTab] = useState<"create" | "gallery">("create");
   const [gallery, setGallery] = useState<Gallery | null>(null);
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -63,6 +65,8 @@ function SessionPage({ id }: SessionPageProps) {
     isLoading: false,
   });
   const createImageRef = useRef<HTMLImageElement | null>(null);
+  const markerState = useRef<MarkerAreaState | undefined>(undefined);
+  const markerArea = useRef<MarkerArea | null>(null);
   const { db } = useFirebase();
 
   useEffect(() => {
@@ -97,8 +101,26 @@ function SessionPage({ id }: SessionPageProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (currTab === "create" && marker) {
+      marker.show();
+    }
+  }, [currTab]);
+
   const handleOpen = () => setShowModal(true);
   const handleClose = () => setShowModal(false);
+
+  const handleChangeTab = (tab: string | null) => {
+    if (tab === "create") {
+      return setCurrTab(tab);
+    }
+    if (tab === "gallery") {
+      if (marker) {
+        marker.close();
+      }
+      return setCurrTab("gallery");
+    }
+  };
 
   const handleUpload = (value: string) => {
     setUploadImage({ ...uploadImage, isLoading: true });
@@ -148,13 +170,15 @@ function SessionPage({ id }: SessionPageProps) {
     if (!target) {
       return;
     }
-    const markerArea = new MarkerArea(target);
-    markerArea.addRenderEventListener((imgUrl) => {
+    const markerInstance = new MarkerArea(target);
+    markerInstance.addRenderEventListener((imgUrl, state) => {
       if (createImageRef.current) {
         createImageRef.current.src = imgUrl;
       }
+      markerState.current = state;
     });
-    markerArea.show();
+    markerInstance.show();
+    marker = markerInstance;
   };
 
   const handleSubmitMarker = () => {
@@ -218,7 +242,11 @@ function SessionPage({ id }: SessionPageProps) {
         <Button onClick={handleOpen}>Upload Image</Button>
       </div>
       <Spacer height={34} />
-      <Tabs defaultActiveKey="create" id="see-gallery-or-create">
+      <Tabs
+        activeKey={currTab}
+        onSelect={handleChangeTab}
+        id="see-gallery-or-create"
+      >
         <Tab eventKey="create" title="Create">
           <Spacer height={40} />
           {gallery?.value && (
@@ -227,7 +255,7 @@ function SessionPage({ id }: SessionPageProps) {
               height={250}
               style={{ width: "100%", height: "100%" }}
               alt="Draw on this background"
-              src={gallery?.value}
+              src={createImageRef.current?.src || gallery?.value}
               ref={createImageRef}
               onClick={handleInitMarker}
             />
@@ -236,7 +264,13 @@ function SessionPage({ id }: SessionPageProps) {
         <Tab eventKey="gallery" title="Gallery">
           <Spacer height={24} />
           {images.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
               {images.map((image) => {
                 return <ImageWrapper src={image.value} key={image.id} />;
               })}
