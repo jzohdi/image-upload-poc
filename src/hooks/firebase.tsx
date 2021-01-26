@@ -50,20 +50,22 @@ type AuthState = {
 export const Protected: React.FC = ({
   children,
 }: PropsWithChildren<{}>): React.ReactElement => {
+  const { auth } = useFirebase();
+  const router = useRouter();
   const [authState, setAuthState] = useState<AuthState>({
     isLoading: true,
     isLoggedIn: false,
   });
-  const router = useRouter();
-  const { auth } = useFirebase();
+
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
-      router.push("/signin");
-      setAuthState({ isLoading: false, isLoggedIn: false });
-    } else {
-      setAuthState({ isLoading: false, isLoggedIn: true });
-    }
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        setAuthState({ isLoading: false, isLoggedIn: true });
+      } else {
+        router.push("/signin");
+        setAuthState({ isLoading: false, isLoggedIn: false });
+      }
+    });
   }, []);
 
   if (authState.isLoading) {

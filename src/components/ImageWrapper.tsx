@@ -1,23 +1,36 @@
 import Image from "next/image";
+import { CSSProperties } from "react";
 
 function ImageWrapper({
   src,
   width,
   height,
+  style,
+  onClick,
 }: {
   src: string;
   width?: number;
   height?: number;
+  style?: CSSProperties;
+  onClick?: (src: string) => void;
 }) {
+  const handleClick = () => {
+    if (onClick) {
+      onClick(src);
+    }
+  };
+
   return (
     <div
+      className="hover-paper"
       style={{
         borderRadius: 8,
         border: "2px solid grey",
         padding: 15,
-        margin: "0 20px 0 0",
         cursor: "pointer",
+        ...style,
       }}
+      onClick={handleClick}
     >
       <div
         style={{

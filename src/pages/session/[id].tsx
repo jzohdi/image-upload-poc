@@ -20,6 +20,7 @@ import Tabs from "react-bootstrap/Tabs";
 //next
 import ErrorPage from "next/error";
 import Image from "next/image";
+import ImageModal from "../../components/ImageModal";
 
 type SessionPageProps = {
   id?: string;
@@ -64,6 +65,7 @@ function SessionPage({ id }: SessionPageProps) {
   const [uploadImage, setUploadImage] = useState<FileUpload>({
     isLoading: false,
   });
+  const [fullscreenSrc, setFullscreenSrc] = useState<string | null>(null);
   const createImageRef = useRef<HTMLImageElement | null>(null);
   const markerState = useRef<MarkerAreaState | undefined>(undefined);
   const markerArea = useRef<MarkerArea | null>(null);
@@ -194,12 +196,17 @@ function SessionPage({ id }: SessionPageProps) {
     });
   };
 
+  const handleFullScreenImage = (src: string) => {
+    setFullscreenSrc(src);
+  };
+
   if (!id) {
     return <ErrorPage statusCode={404} />;
   }
 
   return (
     <Container>
+      <ImageModal src={fullscreenSrc} />
       <Modal show={showModal} onHide={handleClose}>
         <Modal.Header>
           <Modal.Title>Add image to gallery</Modal.Title>
@@ -262,7 +269,6 @@ function SessionPage({ id }: SessionPageProps) {
           )}
         </Tab>
         <Tab eventKey="gallery" title="Gallery">
-          <Spacer height={24} />
           {images.length > 0 && (
             <div
               style={{
@@ -272,7 +278,14 @@ function SessionPage({ id }: SessionPageProps) {
               }}
             >
               {images.map((image) => {
-                return <ImageWrapper src={image.value} key={image.id} />;
+                return (
+                  <ImageWrapper
+                    src={image.value}
+                    key={image.id}
+                    style={{ margin: "24px 0px 0px 24px" }}
+                    onClick={handleFullScreenImage}
+                  />
+                );
               })}
             </div>
           )}
