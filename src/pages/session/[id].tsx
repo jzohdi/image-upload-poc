@@ -1,13 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, CSSProperties } from "react";
 import firebase from "firebase/app";
 import "firebase/firestore";
 import { GALLERY_COLLECTION, Gallery, GalleryImage } from "../../types";
-import { GetServerSideProps } from "next";
 import { SnapshotSub, useFirebase } from "../../hooks/firebase";
 import AppBar from "../../components/AppBar";
 import ImageWrapper from "../../components/ImageWrapper";
 import { Spacer } from "../../components/utils";
 import { toBase64, toDataURL } from "../../utils";
+import ImageModal from "../../components/ImageModal";
+import { ShowIcon, HideIcon, TrashIcon } from "../../icons";
 // libs
 import { MarkerArea, MarkerAreaState } from "markerjs2";
 //bootstrap-react
@@ -18,9 +19,9 @@ import Form from "react-bootstrap/Form";
 import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
 //next
+import { GetServerSideProps } from "next";
 import ErrorPage from "next/error";
 import Image from "next/image";
-import ImageModal from "../../components/ImageModal";
 
 type SessionPageProps = {
   id?: string;
@@ -68,8 +69,7 @@ function SessionPage({ id }: SessionPageProps) {
   const [fullscreenSrc, setFullscreenSrc] = useState<string | null>(null);
   const createImageRef = useRef<HTMLImageElement | null>(null);
   const markerState = useRef<MarkerAreaState | undefined>(undefined);
-  const markerArea = useRef<MarkerArea | null>(null);
-  const { db } = useFirebase();
+  const { db, auth } = useFirebase();
 
   useEffect(() => {
     let unsub: SnapshotSub;
@@ -165,6 +165,22 @@ function SessionPage({ id }: SessionPageProps) {
       return;
     }
     setUploadImage({ ...uploadImage, file: files[0] });
+  };
+
+  const handleToggleDisabled = (image: GalleryImage) => {
+    db.collection(GALLERY_COLLECTION)
+      .doc(id)
+      .collection("images")
+      .doc(image.id)
+      .update({ disabled: !image.disabled });
+  };
+
+  const handleDelete = (image: GalleryImage) => {
+    db.collection(GALLERY_COLLECTION)
+      .doc(id)
+      .collection("images")
+      .doc(image.id)
+      .delete();
   };
 
   const handleInitMarker = () => {
@@ -279,12 +295,36 @@ function SessionPage({ id }: SessionPageProps) {
             >
               {images.map((image) => {
                 return (
-                  <ImageWrapper
-                    src={image.value}
-                    key={image.id}
-                    style={{ margin: "24px 0px 0px 24px" }}
-                    onClick={handleFullScreenImage}
-                  />
+                  <div key={image.id} style={{ margin: "24px 0px 0px 24px" }}>
+                    <ImageWrapper
+                      src={image.value}
+                      onClick={handleFullScreenImage}
+                    />
+                    {gallery?.roles[auth.currentUser?.uid ?? ""] ===
+                      "owner" && (
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          padding: "5px 10px",
+                        }}
+                      >
+                        <ToggleDisabledButton
+                          disabled={image.disabled}
+                          onClick={() => {
+                            handleToggleDisabled(image);
+                          }}
+                          style={{ cursor: "pointer " }}
+                        />
+                        <TrashIcon
+                          width={25}
+                          height={25}
+                          onClick={() => handleDelete(image)}
+                          style={{ cursor: "pointer", fill: "#d00404" }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -296,3 +336,18 @@ function SessionPage({ id }: SessionPageProps) {
 }
 
 export default SessionPage;
+
+function ToggleDisabledButton({
+  disabled,
+  onClick,
+  style,
+}: {
+  disabled: boolean;
+  onClick: () => void;
+  style: CSSProperties;
+}) {
+  if (disabled) {
+    return <ShowIcon width={25} height={25} onClick={onClick} style={style} />;
+  }
+  return <HideIcon width={25} height={25} onClick={onClick} style={style} />;
+}

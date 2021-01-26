@@ -18,4 +18,7 @@ export type Gallery = {
   value: string;
   createdAt: TimeStamp;
   disabled: boolean;
+  roles: {
+    [key: string]: "owner" | "editor";
+  };
 };
