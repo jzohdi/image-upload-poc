@@ -4,3 +4,13 @@
 .hover-paper:hover {
   box-shadow: 0px 0px 15px 5px lightgrey;
 }
+html,
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+h1 {
+  font-size: 40px;
+}
+h2 {
+  font-size: 32px;
+}
