@@ -1,6 +1,12 @@
 import { useRef, useEffect } from "react";
 
-export default function ImageModal({ src }: { src: string | null }) {
+export default function ImageModal({
+  src,
+  onClose,
+}: {
+  src: string | null;
+  onClose?: () => void;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
@@ -26,7 +32,14 @@ export default function ImageModal({ src }: { src: string | null }) {
       if (image) {
         image.classList.remove("open");
       }
+      if (onClose) {
+        onClose();
+      }
     }
+  };
+
+  const getDimension = () => {
+    return "max-height: 70%; max-width: 90%; width: auto; height: auto;";
   };
 
   return (
@@ -40,7 +53,7 @@ export default function ImageModal({ src }: { src: string | null }) {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                z-index: 1;
+                z-index: 2;
                 opacity: 0;
                 pointer-events: none;
                 transition: 0.25s ease-out;
@@ -51,7 +64,7 @@ export default function ImageModal({ src }: { src: string | null }) {
               }
               .full-img {
                 position: absolute;
-                height: 70%;
+                ${getDimension()}
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%) scale(0.5);

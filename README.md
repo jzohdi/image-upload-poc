@@ -77,13 +77,16 @@ service cloud.firestore {
       allow create: if isSignedIn();
 
       match /images/{image} {
+      	function isOwner() {
+             return isOneOfRoles(get(/databases/$(database)/documents/galleries/$(galleryId)),
+                                        ['owner'])
+        }
         // anyone can read the images
         // anyone can create an image if the gallery is enabled
         // omly ownder can delete an image
-      	allow read;
+      	allow read: if resource.data.disabled == false || isOwner();
         allow create: if isEnabled(get(/databases/$(database)/documents/galleries/$(galleryId)));
-        allow delete:  if isOneOfRoles(get(/databases/$(database)/documents/galleries/$(galleryId)),
-                                        ['owner']);
+        allow update, delete: if isOwner();
       }
     }
   }

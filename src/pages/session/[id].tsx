@@ -71,8 +71,9 @@ function SessionPage({ id }: SessionPageProps) {
   const markerState = useRef<MarkerAreaState | undefined>(undefined);
   const { db, auth } = useFirebase();
 
+  const isOwner = gallery?.roles[auth.currentUser?.uid ?? ""] === "owner";
+
   useEffect(() => {
-    let unsub: SnapshotSub;
     if (id) {
       const fetchGallery = async () => {
         const galleryRef = await db
@@ -83,10 +84,17 @@ function SessionPage({ id }: SessionPageProps) {
         setGallery({ ...data, id });
       };
       fetchGallery();
+    }
+  }, []);
+
+  useEffect(() => {
+    let unsub: SnapshotSub;
+    if (gallery) {
       unsub = db
         .collection(GALLERY_COLLECTION)
         .doc(id)
         .collection("images")
+        .where("disabled", "in", isOwner ? [true, false] : [false])
         .onSnapshot((res) => {
           const images = res.docs.map((item) => ({
             ...item.data(),
@@ -101,7 +109,7 @@ function SessionPage({ id }: SessionPageProps) {
         unsub();
       }
     };
-  }, []);
+  }, [gallery]);
 
   useEffect(() => {
     if (currTab === "create" && marker) {
@@ -222,7 +230,12 @@ function SessionPage({ id }: SessionPageProps) {
 
   return (
     <Container>
-      <ImageModal src={fullscreenSrc} />
+      <ImageModal
+        src={fullscreenSrc}
+        onClose={() => {
+          setFullscreenSrc("");
+        }}
+      />
       <Modal show={showModal} onHide={handleClose}>
         <Modal.Header>
           <Modal.Title>Add image to gallery</Modal.Title>
@@ -299,14 +312,17 @@ function SessionPage({ id }: SessionPageProps) {
                     <ImageWrapper
                       src={image.value}
                       onClick={handleFullScreenImage}
+                      style={isOwner ? { borderRadius: "8px 8px 0px 0px" } : {}}
+                      disabled={image.disabled}
                     />
-                    {gallery?.roles[auth.currentUser?.uid ?? ""] ===
-                      "owner" && (
+                    {isOwner && (
                       <div
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
                           padding: "5px 10px",
+                          border: "2px solid grey",
+                          borderRadius: "0px 0px 8px 8px",
                         }}
                       >
                         <ToggleDisabledButton

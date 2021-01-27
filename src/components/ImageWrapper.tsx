@@ -3,12 +3,14 @@ import { CSSProperties } from "react";
 
 function ImageWrapper({
   src,
+  disabled,
   width,
   height,
   style,
   onClick,
 }: {
   src: string;
+  disabled: boolean;
   width?: number;
   height?: number;
   style?: CSSProperties;
@@ -26,12 +28,24 @@ function ImageWrapper({
       style={{
         borderRadius: 8,
         border: "2px solid grey",
-        padding: 15,
         cursor: "pointer",
+        position: "relative",
+        overflow: "hidden",
         ...style,
       }}
       onClick={handleClick}
     >
+      {disabled && (
+        <div
+          style={{
+            height: "100%",
+            position: "absolute",
+            width: "100%",
+            backgroundColor: "#000000a6",
+            zIndex: 1,
+          }}
+        ></div>
+      )}
       <div
         style={{
           width: width || 300,
@@ -40,6 +54,7 @@ function ImageWrapper({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
+          margin: 15,
         }}
       >
         <Image
