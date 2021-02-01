@@ -14,9 +14,8 @@ The goal is for a user to sign up, and be able to create a gallery where unauthe
 - Typescript
 - NextJS
 - GraphQL (Apollo)
-- SQLite
-- Prisma
-- Auth -> Firebase (free for auth use)
+- SQLite + Prisma
+- Auth -> JWT
 - bootstrap-react
 
 ## Notes

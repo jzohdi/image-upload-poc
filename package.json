@@ -6,20 +6,30 @@
     "dev": "set ANALYZE=false && next dev",
     "build": "set ANALYZE=false && next build",
     "start": "set ANALYZE=false && next start",
-    "analyze": "set ANALYZE=true && next build"
+    "analyze": "set ANALYZE=true && next build",
+    "generate": "npm -s run generate:prisma && npm -s run generate:nexus",
+    "generate:prisma": "prisma generate",
+    "generate:nexus": "ts-node --transpile-only -P nexus.tsconfig.json pages/api"
   },
   "dependencies": {
     "@next/bundle-analyzer": "^10.0.5",
+    "@prisma/client": "^2.15.0",
+    "apollo-server-micro": "^2.19.2",
     "bootstrap": "^4.5.3",
     "firebase": "^8.2.2",
+    "graphql-iso-date": "^3.6.1",
     "markerjs2": "^2.3.0",
     "next": "10.0.5",
+    "nexus": "^1.0.0",
+    "nexus-plugin-prisma": "^0.29.0",
     "react": "17.0.1",
     "react-bootstrap": "^1.4.3",
     "react-dom": "17.0.1"
   },
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^4.0.0",
+    "@prisma/cli": "^2.15.0",
+    "@types/graphql-iso-date": "^3.4.0",
     "@types/node": "^14.14.20",
     "@types/react": "^17.0.0",
     "@typescript-eslint/eslint-plugin": "^4.12.0",
