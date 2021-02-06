@@ -60,7 +60,10 @@ export interface NexusGenObjects {
   Query: {};
   User: { // root type
     email?: string | null; // String
+    expires?: string | null; // String
     id?: string | null; // String
+    refresh?: string | null; // String
+    token?: string | null; // String
   }
 }
 
@@ -97,7 +100,10 @@ export interface NexusGenFieldTypes {
   }
   User: { // field return type
     email: string | null; // String
+    expires: string | null; // String
     id: string | null; // String
+    refresh: string | null; // String
+    token: string | null; // String
   }
 }
 
@@ -124,7 +130,10 @@ export interface NexusGenFieldTypeNames {
   }
   User: { // field return type name
     email: 'String'
+    expires: 'String'
     id: 'String'
+    refresh: 'String'
+    token: 'String'
   }
 }
 

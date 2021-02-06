@@ -91,3 +91,14 @@ service cloud.firestore {
   }
 }
 ```
+
+## V1
+
+### Resources
+
+https://www.prisma.io/docs/concepts/components/prisma-client/crud#create
+https://www.prisma.io/docs/getting-started/setup-prisma/start-from-scratch-typescript-postgres/
+https://www.digitalocean.com/community/tutorials/nodejs-jwt-expressjs
+https://github.com/prisma/prisma-examples/blob/latest/typescript/graphql-nextjs/pages/api/index.ts
+https://github.com/tannerlinsley/react-query/tree/master/examples/auto-refetching
+https://www.npmjs.com/package/bcrypt

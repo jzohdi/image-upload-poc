@@ -10,6 +10,12 @@ import {
 } from "nexus";
 import path from "path";
 import prisma from "../../lib/prisma";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+
+const tokenSecret = process.env.ACCESS_TOKEN_SECRET as string;
+const refreshSecret = process.env.REFRESH_TOKEN_SECRET as string;
+const refreshTokens: { [key: string]: string } = {};
 
 const DateScalar = scalarType({
   name: "Date",
@@ -30,6 +36,9 @@ const User = objectType({
   definition(t) {
     t.string("id");
     t.string("email");
+    t.string("token");
+    t.string("expires");
+    t.string("refresh");
   },
 });
 
@@ -37,7 +46,7 @@ const Image = objectType({
   name: "Image",
   definition(t) {
     t.string("id");
-    t.field("createdAt", { type: "Date" });
+    t.date("createdAt");
     t.boolean("disabled");
     t.string("value");
   },
@@ -47,7 +56,7 @@ const Gallery = objectType({
   name: "Gallery",
   definition(t) {
     t.string("id");
-    t.field("createdAt", { type: "Date" });
+    t.date("createdAt");
     t.boolean("disabled");
     t.string("value");
     t.string("owner");
@@ -76,6 +85,8 @@ const Query = objectType({
   },
 });
 
+const SALT_ROUNDS = 10;
+
 const Mutation = objectType({
   name: "Mutation",
   definition(t) {
@@ -86,8 +97,37 @@ const Mutation = objectType({
         password: nonNull(stringArg()),
       },
       resolve: (_, { email, password }, ctx) => {
-        console.log({ password, email });
-        return {};
+        return new Promise((resolve, reject) => {
+          bcrypt.hash(password, SALT_ROUNDS, (err, hash) => {
+            if (err) {
+              console.log("Error occured in createUser, ", err);
+              reject();
+            }
+            prisma.user
+              .create({
+                data: { email, password: hash },
+              })
+              .then((user) => {
+                const token = jwt.sign({ email }, tokenSecret, {
+                  expiresIn: "3h",
+                }); // 3 hours
+                const refreshToken = jwt.sign({ email }, refreshSecret, {
+                  expiresIn: "1 day",
+                });
+                refreshTokens[refreshToken] = email;
+                resolve({
+                  token,
+                  expires: "10800s",
+                  refresh: refreshToken,
+                  ...user,
+                });
+              })
+              .catch((err) => {
+                console.log(err);
+                reject("Error occured while creating user.");
+              });
+          });
+        });
       },
     });
   },
@@ -110,3 +150,5 @@ export const config = {
 export default new ApolloServer({ schema }).createHandler({
   path: "/api/graphql",
 });
+
+function createUser(email: string, password: string) {}

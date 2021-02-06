@@ -31,5 +31,8 @@ type Query {
 
 type User {
   email: String
+  expires: String
   id: String
+  refresh: String
+  token: String
 }
