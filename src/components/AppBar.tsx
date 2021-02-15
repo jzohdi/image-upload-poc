@@ -1,19 +1,21 @@
-import { useFirebase } from "../hooks/firebase";
-import Link from "next/link";
-import { useRouter } from "next/router";
+import { useAuth } from "../hooks/auth";
 import { Spacer } from "./utils";
 import { CSSProperties, PropsWithChildren } from "react";
 import { Nav } from "react-bootstrap";
+import Link from "next/link";
+import { useRouter } from "next/router";
 
 function AppBar() {
-  const { auth } = useFirebase();
+  const auth = useAuth();
   const router = useRouter();
 
   const handleSignOut = (e: React.MouseEvent) => {
     e.preventDefault();
-    auth.signOut().then(() => {
-      router.push("/signin");
-    });
+    if (auth.getCurrentUser()) {
+      auth.signOut().then(() => {
+        router.push("/");
+      });
+    }
   };
 
   return (
@@ -33,7 +35,7 @@ function AppBar() {
       >
         <ul style={{ display: "flex", alignItems: "center" }}>
           <NavItem href="/">Home</NavItem>
-          {auth.currentUser === null ? (
+          {auth.getCurrentUser() === null ? (
             <>
               <NavItem href="/signin">Sign In</NavItem>
               <NavItem href="/signup">Sign Up</NavItem>

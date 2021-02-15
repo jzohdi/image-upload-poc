@@ -5,8 +5,8 @@ import Button from "react-bootstrap/Button";
 import Alert from "react-bootstrap/Alert";
 import { Spacer } from "../components/utils";
 import AppBar from "../components/AppBar";
-import { useFirebase } from "../hooks/firebase";
 import { useRouter } from "next/router";
+import { useAuth } from "../hooks/auth";
 
 type StateKey = "email" | "password" | "alert";
 
@@ -27,7 +27,7 @@ type SignUpForm = Partial<
 const defaultState = { email: "", password: "" };
 export default function Home() {
   const [state, setState] = useState<SignUpForm>(defaultState);
-  const { auth } = useFirebase();
+  const auth = useAuth();
   const router = useRouter();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -53,12 +53,15 @@ export default function Home() {
         },
       });
     }
-    setState({ ...state, alert: undefined });
     auth
-      .signInWithEmailAndPassword(state.email, state.password)
-      .then((cred) => {
-        setState(defaultState);
+      .signIn(state.email, state.password)
+      .then((user) => {
         router.push("/");
+        console.log("going to home page");
+        setState({ ...state, alert: undefined });
+      })
+      .catch((err) => {
+        console.error(err);
       });
   };
 
@@ -69,7 +72,7 @@ export default function Home() {
       <Alert variant={state?.alert?.type}>{state?.alert?.message || ""}</Alert>
       <Form onSubmit={handleSubmit}>
         <Form.Group controlId="formBasicEmail">
-          <Form.Label>Email address</Form.Label>
+          <Form.Label style={{ paddingBottom: 8 }}>Email address</Form.Label>
           <Form.Control
             required
             type="email"
@@ -78,13 +81,10 @@ export default function Home() {
             onChange={handleChange}
             value={state.email}
           />
-          <Form.Text className="text-muted">
-            We'll never share your email with anyone else.
-          </Form.Text>
         </Form.Group>
-
+        <div style={{ width: "100%", height: 10 }}></div>
         <Form.Group controlId="formBasicPassword">
-          <Form.Label>Password</Form.Label>
+          <Form.Label style={{ paddingBottom: 8 }}>Password</Form.Label>
           <Form.Control
             required
             name="password"

@@ -1,4 +1,12 @@
 import { PrismaClient } from "@prisma/client";
-
+import { NextApiRequest, NextApiResponse } from "next";
 const prisma = new PrismaClient();
-export default prisma;
+
+export type Prisma = PrismaClient;
+export type Context = {
+  prisma: PrismaClient;
+  req: NextApiRequest;
+  res: NextApiResponse;
+};
+
+export { prisma };

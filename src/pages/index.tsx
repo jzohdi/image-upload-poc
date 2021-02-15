@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import firebase from "firebase/app";
+// import firebase from "firebase/app";
 import { Divider, Spacer } from "../components/utils";
 import AppBar from "../components/AppBar";
-import {
-  useFirebase,
-  TimeStamp,
-  Protected,
-  SnapshotSub,
-} from "../hooks/firebase";
+// import {
+//   useFirebase,
+//   TimeStamp,
+//   Protected,
+//   SnapshotSub,
+// } from "../hooks/firebase";
+import { AuthProvider } from "../hooks/auth";
 import { GALLERY_COLLECTION, Gallery, GalleryImage } from "../types";
 import { toBase64 } from "../utils";
 // bootstrap components
@@ -25,7 +26,6 @@ import Link from "next/link";
 export default function Home() {
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [showCreate, setShowCreate] = useState<boolean>(false);
-  const { auth, db } = useFirebase();
 
   const handleOpen = () => {
     setShowCreate(true);
@@ -35,39 +35,39 @@ export default function Home() {
     setShowCreate(false);
   };
 
-  const handleCreateNewSession = async (fileString: string): Promise<void> => {
-    if (!auth.currentUser?.uid) {
-      return;
-    }
-    db.collection(GALLERY_COLLECTION)
-      .add({
-        createdAt: firebase.firestore.Timestamp.now(),
-        disabled: false,
-        roles: { [auth.currentUser.uid]: "owner" },
-        value: fileString,
-      })
-      .then((res) => {
-        console.log(res);
-      })
-      .catch((err) => {
-        console.log("error creating a new session", err);
-      });
-    handleClose();
-  };
+  // const handleCreateNewSession = async (fileString: string): Promise<void> => {
+  //   if (!auth.currentUser?.uid) {
+  //     return;
+  //   }
+  //   db.collection(GALLERY_COLLECTION)
+  //     .add({
+  //       createdAt: firebase.firestore.Timestamp.now(),
+  //       disabled: false,
+  //       roles: { [auth.currentUser.uid]: "owner" },
+  //       value: fileString,
+  //     })
+  //     .then((res) => {
+  //       console.log(res);
+  //     })
+  //     .catch((err) => {
+  //       console.log("error creating a new session", err);
+  //     });
+  //   handleClose();
+  // };
 
-  useEffect(() => {
-    db.collection(GALLERY_COLLECTION).onSnapshot((snapshot) => {
-      const galleries = snapshot.docs.map((doc) => {
-        return { id: doc.id, ...doc.data() };
-      }) as Gallery[];
-      setGalleries(
-        galleries.sort((o1, o2) => o2.createdAt.seconds - o1.createdAt.seconds)
-      );
-    });
-  }, []);
+  // useEffect(() => {
+  //   db.collection(GALLERY_COLLECTION).onSnapshot((snapshot) => {
+  //     const galleries = snapshot.docs.map((doc) => {
+  //       return { id: doc.id, ...doc.data() };
+  //     }) as Gallery[];
+  //     setGalleries(
+  //       galleries.sort((o1, o2) => o2.createdAt.seconds - o1.createdAt.seconds)
+  //     );
+  //   });
+  // }, []);
 
   return (
-    <Protected>
+    <AuthProvider>
       <Container>
         <AppBar />
         <div>
@@ -75,11 +75,11 @@ export default function Home() {
             <h1>Sessions</h1>
             <Button onClick={handleOpen}>Create New</Button>
           </div>
-          <NewSessionModal
+          {/* <NewSessionModal
             onClose={handleClose}
             show={showCreate}
             onConfirm={handleCreateNewSession}
-          />
+          /> */}
           {galleries.length === 0 && <h2>No sessions have been created yet</h2>}
           {galleries.map((gallery, index) => {
             return (
@@ -92,30 +92,30 @@ export default function Home() {
           })}
         </div>
       </Container>
-    </Protected>
+    </AuthProvider>
   );
 }
 
 function GalleryPreview({ gallery }: { gallery: Gallery }) {
   const [images, setImages] = useState<GalleryImage[]>([]);
-  const { db } = useFirebase();
+  // const { db } = useFirebase();
 
-  useEffect(() => {
-    const unsub: SnapshotSub = db
-      .collection(GALLERY_COLLECTION)
-      .doc(gallery.id)
-      .collection("images")
-      .onSnapshot((snapshot) => {
-        const docs = snapshot.docs.map((item) => {
-          return { id: item.id, ...item.data() };
-        });
-        setImages(docs as GalleryImage[]);
-      });
+  // useEffect(() => {
+  //   const unsub: SnapshotSub = db
+  //     .collection(GALLERY_COLLECTION)
+  //     .doc(gallery.id)
+  //     .collection("images")
+  //     .onSnapshot((snapshot) => {
+  //       const docs = snapshot.docs.map((item) => {
+  //         return { id: item.id, ...item.data() };
+  //       });
+  //       setImages(docs as GalleryImage[]);
+  //     });
 
-    return () => {
-      unsub();
-    };
-  }, []);
+  //   return () => {
+  //     unsub();
+  //   };
+  // }, []);
 
   return (
     <Accordian>

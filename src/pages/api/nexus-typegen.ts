@@ -4,6 +4,7 @@
  */
 
 
+import { Context } from "./../../lib/prisma/index"
 import { core } from "nexus"
 declare global {
   interface NexusGenCustomInputMethods<TypeName extends string> {
@@ -82,7 +83,6 @@ export interface NexusGenFieldTypes {
     createdAt: NexusGenScalars['Date'] | null; // Date
     disabled: boolean | null; // Boolean
     id: string | null; // String
-    images: Array<NexusGenRootTypes['Image'] | null> | null; // [Image]
     owner: string | null; // String
     value: string | null; // String
   }
@@ -93,10 +93,12 @@ export interface NexusGenFieldTypes {
     value: string | null; // String
   }
   Mutation: { // field return type
+    createGallery: NexusGenRootTypes['Gallery'] | null; // Gallery
     createUser: NexusGenRootTypes['User'] | null; // User
   }
   Query: { // field return type
     gallery: NexusGenRootTypes['Gallery'] | null; // Gallery
+    signIn: NexusGenRootTypes['User'] | null; // User
   }
   User: { // field return type
     email: string | null; // String
@@ -112,7 +114,6 @@ export interface NexusGenFieldTypeNames {
     createdAt: 'Date'
     disabled: 'Boolean'
     id: 'String'
-    images: 'Image'
     owner: 'String'
     value: 'String'
   }
@@ -123,10 +124,12 @@ export interface NexusGenFieldTypeNames {
     value: 'String'
   }
   Mutation: { // field return type name
+    createGallery: 'Gallery'
     createUser: 'User'
   }
   Query: { // field return type name
     gallery: 'Gallery'
+    signIn: 'User'
   }
   User: { // field return type name
     email: 'String'
@@ -139,6 +142,9 @@ export interface NexusGenFieldTypeNames {
 
 export interface NexusGenArgTypes {
   Mutation: {
+    createGallery: { // args
+      background: string; // String!
+    }
     createUser: { // args
       email: string; // String!
       password: string; // String!
@@ -147,6 +153,10 @@ export interface NexusGenArgTypes {
   Query: {
     gallery: { // args
       id: string; // String!
+    }
+    signIn: { // args
+      email: string; // String!
+      password: string; // String!
     }
   }
 }
@@ -182,7 +192,7 @@ export type NexusGenFeaturesConfig = {
 }
 
 export interface NexusGenTypes {
-  context: any;
+  context: Context;
   inputTypes: NexusGenInputs;
   rootTypes: NexusGenRootTypes;
   inputTypeShapes: NexusGenInputs & NexusGenEnums & NexusGenScalars;

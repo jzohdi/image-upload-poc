@@ -3,7 +3,10 @@ import "../styles/reset.css";
 import "../styles/globals.css";
 import Head from "next/head";
 import type { AppProps } from "next/app";
-import { FirebaseProvider } from "../hooks/firebase";
+import { QueryClient, QueryClientProvider } from "react-query";
+import { ReactQueryDevtools } from "react-query/devtools";
+
+const queryClient = new QueryClient();
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
@@ -15,9 +18,10 @@ function MyApp({ Component, pageProps }: AppProps) {
         <link rel="icon" href="/favicon.ico" />
         <title>Gallery </title>
       </Head>
-      <FirebaseProvider>
+      <QueryClientProvider client={queryClient}>
         <Component {...pageProps} />
-      </FirebaseProvider>
+        <ReactQueryDevtools initialIsOpen />
+      </QueryClientProvider>
     </>
   );
 }

@@ -9,13 +9,8 @@ import {
   scalarType,
 } from "nexus";
 import path from "path";
-import prisma from "../../lib/prisma";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-
-const tokenSecret = process.env.ACCESS_TOKEN_SECRET as string;
-const refreshSecret = process.env.REFRESH_TOKEN_SECRET as string;
-const refreshTokens: { [key: string]: string } = {};
+import { createGallery, signIn, signUp } from "../../lib/api/server";
+import { prisma, Context } from "../../lib/prisma";
 
 const DateScalar = scalarType({
   name: "Date",
@@ -60,76 +55,64 @@ const Gallery = objectType({
     t.boolean("disabled");
     t.string("value");
     t.string("owner");
-    t.list.nullable.field("images", {
-      type: "Image",
-      resolve: (parent) =>
-        prisma.image.findMany({ where: { galleryId: parent.id || undefined } }),
-    });
   },
 });
 
 const Query = objectType({
   name: "Query",
   definition(t) {
-    t.field("gallery", {
-      type: "Gallery",
-      args: {
-        id: nonNull(stringArg()),
-      },
-      resolve: (_, args) => {
-        return prisma.gallery.findUnique({
-          where: { id: args.id },
-        });
-      },
-    });
-  },
-});
-
-const SALT_ROUNDS = 10;
-
-const Mutation = objectType({
-  name: "Mutation",
-  definition(t) {
-    t.field("createUser", {
+    t.field("signIn", {
       type: "User",
       args: {
         email: nonNull(stringArg()),
         password: nonNull(stringArg()),
       },
-      resolve: (_, { email, password }, ctx) => {
-        return new Promise((resolve, reject) => {
-          bcrypt.hash(password, SALT_ROUNDS, (err, hash) => {
-            if (err) {
-              console.log("Error occured in createUser, ", err);
-              reject();
-            }
-            prisma.user
-              .create({
-                data: { email, password: hash },
-              })
-              .then((user) => {
-                const token = jwt.sign({ email }, tokenSecret, {
-                  expiresIn: "3h",
-                }); // 3 hours
-                const refreshToken = jwt.sign({ email }, refreshSecret, {
-                  expiresIn: "1 day",
-                });
-                refreshTokens[refreshToken] = email;
-                resolve({
-                  token,
-                  expires: "10800s",
-                  refresh: refreshToken,
-                  ...user,
-                });
-              })
-              .catch((err) => {
-                console.log(err);
-                reject("Error occured while creating user.");
-              });
-          });
-        });
+      resolve: (_, userInfo, ctx: Context) => {
+        return signIn(userInfo, ctx.prisma);
       },
-    });
+    }),
+      t.field("gallery", {
+        type: "Gallery",
+        args: {
+          id: nonNull(stringArg()),
+        },
+        resolve: (_, args) => {
+          return prisma.gallery.findUnique({
+            where: { id: args.id },
+          });
+        },
+      });
+  },
+});
+
+const Mutation = objectType({
+  name: "Mutation",
+  definition(t) {
+    t.field("createGallery", {
+      type: "Gallery",
+      args: {
+        background: nonNull(stringArg()),
+      },
+      resolve: (_, args, ctx: Context) => {
+        const token = ctx.req.headers.authorization;
+        if (!token) {
+          ctx.res.statusCode = 403;
+          throw new Error("Unauthorized");
+        }
+        return createGallery(
+          { background: args.background, token },
+          ctx.prisma
+        );
+      },
+    }),
+      t.field("createUser", {
+        type: "User",
+        args: {
+          email: nonNull(stringArg()),
+          password: nonNull(stringArg()),
+        },
+        resolve: (_, args, ctx: Context) => signUp(args, ctx.prisma),
+      });
   },
 });
 
@@ -139,6 +122,10 @@ export const schema = makeSchema({
     typegen: path.join(process.cwd(), "src/pages/api/nexus-typegen.ts"),
     schema: path.join(process.cwd(), "src/pages/api/schema.graphql"),
   },
+  contextType: {
+    module: path.join(process.cwd(), "src/lib/prisma/index.ts"),
+    export: "Context",
+  },
 });
 
 export const config = {
@@ -146,9 +133,12 @@ export const config = {
     bodyParser: false,
   },
 };
-
-export default new ApolloServer({ schema }).createHandler({
+const apollo = new ApolloServer({
+  schema,
+  context: ({ req, res }) => {
+    return { prisma, req, res };
+  },
+});
+export default apollo.createHandler({
   path: "/api/graphql",
 });
-
-function createUser(email: string, password: string) {}
