@@ -9,6 +9,7 @@ type Gallery {
   createdAt: Date
   disabled: Boolean
   id: String
+  images: [Image]
   owner: String
   value: String
 }
@@ -26,6 +27,7 @@ type Mutation {
 }
 
 type Query {
+  allGallery: [Gallery]
   gallery(id: String!): Gallery
   signIn(email: String!, password: String!): User
 }

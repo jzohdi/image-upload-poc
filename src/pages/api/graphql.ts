@@ -7,9 +7,16 @@ import {
   objectType,
   stringArg,
   scalarType,
+  list,
 } from "nexus";
 import path from "path";
-import { createGallery, signIn, signUp } from "../../lib/api/server";
+import {
+  createGallery,
+  getGalleries,
+  signIn,
+  signUp,
+  decodeJWT,
+} from "../../lib/api/server";
 import { prisma, Context } from "../../lib/prisma";
 
 const DateScalar = scalarType({
@@ -55,6 +62,19 @@ const Gallery = objectType({
     t.boolean("disabled");
     t.string("value");
     t.string("owner");
+    t.list.field("images", {
+      type: "Image",
+      resolve: (parent, _, ctx: Context) => {
+        if (!parent.id) {
+          return null;
+        }
+        return ctx.prisma.image.findMany({
+          where: {
+            galleryId: parent.id,
+          },
+        });
+      },
+    });
   },
 });
 
@@ -80,6 +100,18 @@ const Query = objectType({
           return prisma.gallery.findUnique({
             where: { id: args.id },
           });
+        },
+      }),
+      t.field("allGallery", {
+        type: list("Gallery"),
+        args: {},
+        resolve: (_, args, ctx: Context) => {
+          const token = ctx.req.headers.authorization;
+          if (!token) {
+            ctx.res.statusCode = 403;
+            throw new Error("Unauthorized");
+          }
+          return getGalleries(token, ctx.prisma);
         },
       });
   },

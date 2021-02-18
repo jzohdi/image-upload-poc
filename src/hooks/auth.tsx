@@ -24,6 +24,10 @@ class AuthHelper {
   getCurrentUser(): User | null {
     return this.user ?? null;
   }
+  getToken(): string | null {
+    return this.user?.token ?? null;
+  }
+
   on(event: events, funct: () => void): void {
     this.listeners[event].push(funct);
   }

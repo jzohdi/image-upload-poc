@@ -84,13 +84,10 @@ export async function createGallery(
   { background, token }: CreateGalleryInput,
   prisma: Prisma
 ): Promise<Gallery> {
-  const decoded = jwt.verify(unpackToken(token), tokenSecret);
-  if (!decoded) {
-    throw new Error("Could not verify token.");
-  }
-  const id = (decoded as JWTEncoding).id;
+  const decoded = decodeJWT(token);
+  const id = decoded.id;
   const newGallery = {
-    createdAt: new Date(),
+    createdAt: new Date().toISOString(),
     disabled: false,
     value: background,
     owner: id,
@@ -102,6 +99,30 @@ export async function createGallery(
   return createRes;
 }
 
+export async function getGalleries(token: string, prisma: Prisma) {
+  const decoded = decodeJWT(token);
+  const query = await prisma.gallery.findMany({
+    where: {
+      owner: decoded.id,
+    },
+    include: {
+      Image: true,
+    },
+  });
+  if (!query) {
+    throw new Error("There was a problem retrieving gallories.");
+  }
+  return query;
+}
+
 function unpackToken(token: string) {
   return token.replace("Bearer ", "");
+}
+
+export function decodeJWT(token: string): JWTEncoding {
+  const decoded = jwt.verify(unpackToken(token), tokenSecret);
+  if (!decoded) {
+    throw new Error("Could not verify token.");
+  }
+  return decoded as JWTEncoding;
 }

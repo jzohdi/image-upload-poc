@@ -1,11 +1,24 @@
-import jwt from "jsonwebtoken";
-import { request, gql } from "graphql-request";
+import { request, gql, GraphQLClient } from "graphql-request";
 import { NexusGenFieldTypes } from "../../pages/api/nexus-typegen";
 import { useAuth } from "../../hooks/auth";
 
-export type User = NexusGenFieldTypes["User"];
 const USER_FIELDS = "id email token refresh";
+const GALLERY_FIELDS = "id createdAt disabled value owner";
 const ENDPOINT = "/api/graphql";
+
+let client: GraphQLClient;
+
+export function getClient(token?: string): GraphQLClient {
+  if (!client) {
+    client = new GraphQLClient(ENDPOINT);
+  }
+  if (token) {
+    client.setHeader("authorization", `Bearer ${token}`);
+  }
+  return client;
+}
+
+export type User = NexusGenFieldTypes["User"];
 
 export type Gallery = NexusGenFieldTypes["Gallery"];
 
@@ -13,11 +26,45 @@ export type Gallery = NexusGenFieldTypes["Gallery"];
  * will fail if the user is not logged in
  * @param fileString bas64String of the file for the background of the session
  */
-export async function createGalley(fileString: string): Promise<void> {
-  const user = useAuth().getCurrentUser();
-  if (!user) {
+export async function createGalley(
+  fileString: string
+): Promise<Gallery | null> {
+  const token = useAuth().getToken();
+  if (!token) {
     throw new Error("Not logged in.");
   }
+  const query = gql`mutation  {
+    createGallery(background: "${fileString}") {
+      ${GALLERY_FIELDS}
+    }
+  }
+  `;
+  const client = getClient(token);
+  const result = await client.request(query);
+  const unpacked = unpack(result, "createGallery");
+  if (!unpacked) {
+    throw new Error("There was problem unpacking createGallery resonse");
+  }
+  return unpacked as Gallery;
+}
+
+export async function getGalleries(): Promise<Gallery[] | null> {
+  const jwt = useAuth().getToken();
+  if (!jwt) {
+    throw new Error("Not loggen in.");
+  }
+  const query = gql`query {
+    allGallery {
+      ${GALLERY_FIELDS}
+      images {
+        value
+      }
+    }
+  }`;
+  const client = getClient(jwt);
+  const result = await client.request(query);
+  const unpacked = unpack(result, "allGallery");
+  return unpacked as Gallery[];
 }
 
 export async function signIn(
@@ -31,7 +78,10 @@ export async function signIn(
     }`;
   const result = await request(ENDPOINT, query);
   const unpacked = unpack(result, "signIn");
-  return unpacked;
+  if (!unpacked) {
+    throw new Error("There was an error unpacking signIn response.");
+  }
+  return unpacked as User;
 }
 
 /**
@@ -51,20 +101,16 @@ export async function quietSignIn(): Promise<Partial<User>> {
   return {};
 }
 
-type UnpackTypes = "signIn";
-
-type SignInResponse = {
+type GraphQLResponse = {
+  createGallery: Gallery;
   signIn: User;
+  allGallery: Gallery[];
 };
+type UnpackType = keyof GraphQLResponse;
 
-type GraphQLResponse = SignInResponse | null;
-
-function unpack(data: GraphQLResponse, type: UnpackTypes) {
+function unpack(data: GraphQLResponse | null, type: UnpackType) {
   if (!data) {
     return null;
   }
-  switch (type) {
-    case "signIn":
-      return data[type];
-  }
+  return data[type];
 }

@@ -83,6 +83,7 @@ export interface NexusGenFieldTypes {
     createdAt: NexusGenScalars['Date'] | null; // Date
     disabled: boolean | null; // Boolean
     id: string | null; // String
+    images: Array<NexusGenRootTypes['Image'] | null> | null; // [Image]
     owner: string | null; // String
     value: string | null; // String
   }
@@ -97,6 +98,7 @@ export interface NexusGenFieldTypes {
     createUser: NexusGenRootTypes['User'] | null; // User
   }
   Query: { // field return type
+    allGallery: Array<NexusGenRootTypes['Gallery'] | null> | null; // [Gallery]
     gallery: NexusGenRootTypes['Gallery'] | null; // Gallery
     signIn: NexusGenRootTypes['User'] | null; // User
   }
@@ -114,6 +116,7 @@ export interface NexusGenFieldTypeNames {
     createdAt: 'Date'
     disabled: 'Boolean'
     id: 'String'
+    images: 'Image'
     owner: 'String'
     value: 'String'
   }
@@ -128,6 +131,7 @@ export interface NexusGenFieldTypeNames {
     createUser: 'User'
   }
   Query: { // field return type name
+    allGallery: 'Gallery'
     gallery: 'Gallery'
     signIn: 'User'
   }
