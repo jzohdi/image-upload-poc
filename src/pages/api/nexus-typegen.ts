@@ -45,26 +45,26 @@ export interface NexusGenScalars {
 
 export interface NexusGenObjects {
   Gallery: { // root type
-    createdAt?: NexusGenScalars['Date'] | null; // Date
-    disabled?: boolean | null; // Boolean
-    id?: string | null; // String
-    owner?: string | null; // String
-    value?: string | null; // String
+    createdAt: NexusGenScalars['Date']; // Date!
+    disabled: boolean; // Boolean!
+    id: string; // String!
+    owner: string; // String!
+    value: string; // String!
   }
   Image: { // root type
-    createdAt?: NexusGenScalars['Date'] | null; // Date
-    disabled?: boolean | null; // Boolean
-    id?: string | null; // String
-    value?: string | null; // String
+    createdAt: NexusGenScalars['Date']; // Date!
+    disabled: boolean; // Boolean!
+    id: string; // String!
+    value: string; // String!
   }
   Mutation: {};
   Query: {};
   User: { // root type
-    email?: string | null; // String
-    expires?: string | null; // String
-    id?: string | null; // String
-    refresh?: string | null; // String
-    token?: string | null; // String
+    email: string; // String!
+    expires: string; // String!
+    id: string; // String!
+    refresh: string; // String!
+    token: string; // String!
   }
 }
 
@@ -80,22 +80,24 @@ export type NexusGenAllTypes = NexusGenRootTypes & NexusGenScalars
 
 export interface NexusGenFieldTypes {
   Gallery: { // field return type
-    createdAt: NexusGenScalars['Date'] | null; // Date
-    disabled: boolean | null; // Boolean
-    id: string | null; // String
-    images: Array<NexusGenRootTypes['Image'] | null> | null; // [Image]
-    owner: string | null; // String
-    value: string | null; // String
+    createdAt: NexusGenScalars['Date']; // Date!
+    disabled: boolean; // Boolean!
+    id: string; // String!
+    images: NexusGenRootTypes['Image'][] | null; // [Image!]
+    owner: string; // String!
+    value: string; // String!
   }
   Image: { // field return type
-    createdAt: NexusGenScalars['Date'] | null; // Date
-    disabled: boolean | null; // Boolean
-    id: string | null; // String
-    value: string | null; // String
+    createdAt: NexusGenScalars['Date']; // Date!
+    disabled: boolean; // Boolean!
+    id: string; // String!
+    value: string; // String!
   }
   Mutation: { // field return type
     createGallery: NexusGenRootTypes['Gallery'] | null; // Gallery
+    createImage: NexusGenRootTypes['Image'] | null; // Image
     createUser: NexusGenRootTypes['User'] | null; // User
+    deleteGallery: boolean | null; // Boolean
   }
   Query: { // field return type
     allGallery: Array<NexusGenRootTypes['Gallery'] | null> | null; // [Gallery]
@@ -103,11 +105,11 @@ export interface NexusGenFieldTypes {
     signIn: NexusGenRootTypes['User'] | null; // User
   }
   User: { // field return type
-    email: string | null; // String
-    expires: string | null; // String
-    id: string | null; // String
-    refresh: string | null; // String
-    token: string | null; // String
+    email: string; // String!
+    expires: string; // String!
+    id: string; // String!
+    refresh: string; // String!
+    token: string; // String!
   }
 }
 
@@ -128,7 +130,9 @@ export interface NexusGenFieldTypeNames {
   }
   Mutation: { // field return type name
     createGallery: 'Gallery'
+    createImage: 'Image'
     createUser: 'User'
+    deleteGallery: 'Boolean'
   }
   Query: { // field return type name
     allGallery: 'Gallery'
@@ -149,9 +153,16 @@ export interface NexusGenArgTypes {
     createGallery: { // args
       background: string; // String!
     }
+    createImage: { // args
+      galleryId: string; // String!
+      value: string; // String!
+    }
     createUser: { // args
       email: string; // String!
       password: string; // String!
+    }
+    deleteGallery: { // args
+      id: string; // String!
     }
   }
   Query: {

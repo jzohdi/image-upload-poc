@@ -6,24 +6,26 @@
 scalar Date
 
 type Gallery {
-  createdAt: Date
-  disabled: Boolean
-  id: String
-  images: [Image]
-  owner: String
-  value: String
+  createdAt: Date!
+  disabled: Boolean!
+  id: String!
+  images: [Image!]
+  owner: String!
+  value: String!
 }
 
 type Image {
-  createdAt: Date
-  disabled: Boolean
-  id: String
-  value: String
+  createdAt: Date!
+  disabled: Boolean!
+  id: String!
+  value: String!
 }
 
 type Mutation {
   createGallery(background: String!): Gallery
+  createImage(galleryId: String!, value: String!): Image
   createUser(email: String!, password: String!): User
+  deleteGallery(id: String!): Boolean
 }
 
 type Query {
@@ -33,9 +35,9 @@ type Query {
 }
 
 type User {
-  email: String
-  expires: String
-  id: String
-  refresh: String
-  token: String
+  email: String!
+  expires: String!
+  id: String!
+  refresh: String!
+  token: String!
 }

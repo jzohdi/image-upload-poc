@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 type Gallery = NexusGenFieldTypes["Gallery"];
+type Image = NexusGenFieldTypes["Image"];
 
 const tokenSecret = process.env.ACCESS_TOKEN_SECRET as string;
 const refreshSecret = process.env.REFRESH_TOKEN_SECRET as string;
@@ -96,7 +97,7 @@ export async function createGallery(
   if (!createRes) {
     throw new Error("There was a problem creating the gallery.");
   }
-  return createRes;
+  return createRes as Gallery;
 }
 
 export async function getGalleries(token: string, prisma: Prisma) {
@@ -113,6 +114,54 @@ export async function getGalleries(token: string, prisma: Prisma) {
     throw new Error("There was a problem retrieving gallories.");
   }
   return query;
+}
+
+export async function deleteGallery(id: string, token: string, prisma: Prisma) {
+  const decoded = decodeJWT(token);
+  const gallery = await prisma.gallery.findUnique({
+    where: {
+      id,
+    },
+  });
+  if (!gallery) {
+    return false;
+  }
+  if (gallery && gallery.owner !== decoded.id) {
+    throw new Error("Not authorized to delete this gallery.");
+  }
+  const deleteGallery = prisma.gallery.delete({
+    where: {
+      id,
+    },
+  });
+  const deleteImages = prisma.image.deleteMany({
+    where: {
+      galleryId: id,
+    },
+  });
+  await prisma.$transaction([deleteGallery, deleteImages]);
+  return true;
+}
+
+type CreateImageInput = {
+  value: string;
+  galleryId: string;
+};
+export async function createImage(
+  input: CreateImageInput,
+  prisma: Prisma
+): Promise<Image> {
+  const { value, galleryId } = input;
+  const resonse = await prisma.image.create({
+    data: {
+      galleryId,
+      value,
+    },
+  });
+  if (!resonse) {
+    throw new Error("There was a problem creating image.");
+  }
+  return resonse;
 }
 
 function unpackToken(token: string) {

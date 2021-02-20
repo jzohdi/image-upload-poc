@@ -8,6 +8,7 @@ import {
   stringArg,
   scalarType,
   list,
+  booleanArg,
 } from "nexus";
 import path from "path";
 import {
@@ -16,6 +17,8 @@ import {
   signIn,
   signUp,
   decodeJWT,
+  deleteGallery,
+  createImage,
 } from "../../lib/api/server";
 import { prisma, Context } from "../../lib/prisma";
 
@@ -24,46 +27,49 @@ const DateScalar = scalarType({
   asNexusMethod: "date",
   description: "Date custom scalar type",
   parseValue(value) {
+    console.log(value);
     return GraphQLDate.parseValue(value);
   },
   serialize(value) {
-    return GraphQLDate.serialize(value);
+    return value;
+    // return GraphQLDate.serialize(value);
   },
   parseLiteral(ast) {
+    console.log(ast);
     return GraphQLDate.parseLiteral(ast, {});
   },
 });
 const User = objectType({
   name: "User",
   definition(t) {
-    t.string("id");
-    t.string("email");
-    t.string("token");
-    t.string("expires");
-    t.string("refresh");
+    t.nonNull.string("id");
+    t.nonNull.string("email");
+    t.nonNull.string("token");
+    t.nonNull.string("expires");
+    t.nonNull.string("refresh");
   },
 });
 
 const Image = objectType({
   name: "Image",
   definition(t) {
-    t.string("id");
-    t.date("createdAt");
-    t.boolean("disabled");
-    t.string("value");
+    t.nonNull.string("id");
+    t.nonNull.date("createdAt");
+    t.nonNull.boolean("disabled");
+    t.nonNull.string("value");
   },
 });
 
 const Gallery = objectType({
   name: "Gallery",
   definition(t) {
-    t.string("id");
-    t.date("createdAt");
-    t.boolean("disabled");
-    t.string("value");
-    t.string("owner");
+    t.nonNull.string("id");
+    t.nonNull.date("createdAt");
+    t.nonNull.boolean("disabled");
+    t.nonNull.string("value");
+    t.nonNull.string("owner");
     t.list.field("images", {
-      type: "Image",
+      type: nonNull("Image"),
       resolve: (parent, _, ctx: Context) => {
         if (!parent.id) {
           return null;
@@ -117,26 +123,59 @@ const Query = objectType({
   },
 });
 
+function urlSafeBase64(str: string): string {
+  if (str.length % 4 != 0) {
+    str += "===".slice(0, 4 - (str.length % 4));
+  }
+  str = str.replace(/-/g, "+").replace(/_/g, "/");
+  return str;
+}
+
 const Mutation = objectType({
   name: "Mutation",
   definition(t) {
-    t.field("createGallery", {
-      type: "Gallery",
+    t.field("createImage", {
+      type: "Image",
       args: {
-        background: nonNull(stringArg()),
+        value: nonNull(stringArg()),
+        galleryId: nonNull(stringArg()),
       },
       resolve: (_, args, ctx: Context) => {
-        const token = ctx.req.headers.authorization;
-        if (!token) {
-          ctx.res.statusCode = 403;
-          throw new Error("Unauthorized");
-        }
-        return createGallery(
-          { background: args.background, token },
-          ctx.prisma
-        );
+        args.value = urlSafeBase64(args.value);
+        return createImage(args, ctx.prisma);
       },
     }),
+      t.field("createGallery", {
+        type: "Gallery",
+        args: {
+          background: nonNull(stringArg()),
+        },
+        resolve: (_, args, ctx: Context) => {
+          const token = ctx.req.headers.authorization;
+          if (!token) {
+            ctx.res.statusCode = 403;
+            throw new Error("Unauthorized");
+          }
+          return createGallery(
+            { background: args.background, token },
+            ctx.prisma
+          );
+        },
+      }),
+      t.field("deleteGallery", {
+        type: "Boolean",
+        args: {
+          id: nonNull(stringArg()),
+        },
+        resolve: (_, args, ctx: Context) => {
+          const token = ctx.req.headers.authorization;
+          if (!token) {
+            ctx.res.statusCode = 403;
+            throw new Error("Unauthorized");
+          }
+          return deleteGallery(args.id, token, ctx.prisma);
+        },
+      }),
       t.field("createUser", {
         type: "User",
         args: {

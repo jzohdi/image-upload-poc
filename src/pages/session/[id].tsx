@@ -1,8 +1,4 @@
 import { useState, useEffect, useRef, CSSProperties } from "react";
-import firebase from "firebase/app";
-import "firebase/firestore";
-import { GALLERY_COLLECTION, Gallery, GalleryImage } from "../../types";
-import { SnapshotSub, useFirebase } from "../../hooks/firebase";
 import AppBar from "../../components/AppBar";
 import ImageWrapper from "../../components/ImageWrapper";
 import { Spacer } from "../../components/utils";
@@ -11,6 +7,8 @@ import ImageModal from "../../components/ImageModal";
 import { ShowIcon, HideIcon, TrashIcon } from "../../icons";
 // libs
 import { MarkerArea, MarkerAreaState } from "markerjs2";
+import { createImage, Gallery, getGallery } from "../../lib/api/client";
+import { prisma } from "../../lib/prisma";
 //bootstrap-react
 import Button from "react-bootstrap/Button";
 import Container from "react-bootstrap/Container";
@@ -22,31 +20,33 @@ import Tabs from "react-bootstrap/Tabs";
 import { GetServerSideProps } from "next";
 import ErrorPage from "next/error";
 import Image from "next/image";
+import { useAuth } from "../../hooks/auth";
+import { useQuery, useQueryClient } from "react-query";
 
 type SessionPageProps = {
   id?: string;
 };
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  const firestore = firebase.firestore();
   const { id } = context.query;
-  if (Array.isArray(id)) {
+  if (!id || Array.isArray(id)) {
     return {
       props: {},
     };
   }
 
-  const galleryRef = firestore.collection(GALLERY_COLLECTION).doc(id);
-  const gallery = await galleryRef.get();
-  if (!gallery.exists) {
-    return {
-      props: {},
-    };
-  }
-  return {
-    props: {
-      id: gallery.id,
+  const gallery = await prisma.gallery.findUnique({
+    where: {
+      id,
     },
+  });
+
+  return {
+    props: !!gallery
+      ? {
+          id: gallery.id,
+        }
+      : {},
   };
 };
 
@@ -59,9 +59,15 @@ type FileUpload = {
 let marker: MarkerArea | null;
 
 function SessionPage({ id }: SessionPageProps) {
+  if (!id) {
+    return <ErrorPage statusCode={400} />;
+  }
+  const queryClient = useQueryClient();
+  const auth = useAuth();
+  const { isLoading, data, isError, error } = useQuery("gallery", () =>
+    getGallery(id, auth.getToken())
+  );
   const [currTab, setCurrTab] = useState<"create" | "gallery">("create");
-  const [gallery, setGallery] = useState<Gallery | null>(null);
-  const [images, setImages] = useState<GalleryImage[]>([]);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [uploadImage, setUploadImage] = useState<FileUpload>({
     isLoading: false,
@@ -69,47 +75,8 @@ function SessionPage({ id }: SessionPageProps) {
   const [fullscreenSrc, setFullscreenSrc] = useState<string | null>(null);
   const createImageRef = useRef<HTMLImageElement | null>(null);
   const markerState = useRef<MarkerAreaState | undefined>(undefined);
-  const { db, auth } = useFirebase();
 
-  const isOwner = gallery?.roles[auth.currentUser?.uid ?? ""] === "owner";
-
-  useEffect(() => {
-    if (id) {
-      const fetchGallery = async () => {
-        const galleryRef = await db
-          .collection(GALLERY_COLLECTION)
-          .doc(id)
-          .get();
-        const data = galleryRef.data() as Gallery;
-        setGallery({ ...data, id });
-      };
-      fetchGallery();
-    }
-  }, []);
-
-  useEffect(() => {
-    let unsub: SnapshotSub;
-    if (gallery) {
-      unsub = db
-        .collection(GALLERY_COLLECTION)
-        .doc(id)
-        .collection("images")
-        .where("disabled", "in", isOwner ? [true, false] : [false])
-        .onSnapshot((res) => {
-          const images = res.docs.map((item) => ({
-            ...item.data(),
-            id: item.id,
-          }));
-          setImages(images as GalleryImage[]);
-        });
-    }
-    return () => {
-      // cleanup snapshot
-      if (unsub) {
-        unsub();
-      }
-    };
-  }, [gallery]);
+  const isOwner = data?.owner === auth.getCurrentUser()?.id;
 
   useEffect(() => {
     if (currTab === "create" && marker) {
@@ -134,20 +101,14 @@ function SessionPage({ id }: SessionPageProps) {
 
   const handleUpload = (value: string) => {
     setUploadImage({ ...uploadImage, isLoading: true });
-    const newImage = {
-      createdAt: firebase.firestore.Timestamp.now(),
-      disabled: false,
-      value,
-    };
-    db.collection(GALLERY_COLLECTION)
-      .doc(id)
-      .collection("images")
-      .add(newImage)
+    createImage(value, id)
       .then(() => {
         setUploadImage({ isLoading: false });
         handleClose();
+        queryClient.invalidateQueries("gallery");
       })
       .catch((err) => {
+        console.log("createImage failed: ");
         console.error(err);
       });
   };
@@ -175,21 +136,21 @@ function SessionPage({ id }: SessionPageProps) {
     setUploadImage({ ...uploadImage, file: files[0] });
   };
 
-  const handleToggleDisabled = (image: GalleryImage) => {
-    db.collection(GALLERY_COLLECTION)
-      .doc(id)
-      .collection("images")
-      .doc(image.id)
-      .update({ disabled: !image.disabled });
-  };
+  // const handleToggleDisabled = (image: GalleryImage) => {
+  //   db.collection(GALLERY_COLLECTION)
+  //     .doc(id)
+  //     .collection("images")
+  //     .doc(image.id)
+  //     .update({ disabled: !image.disabled });
+  // };
 
-  const handleDelete = (image: GalleryImage) => {
-    db.collection(GALLERY_COLLECTION)
-      .doc(id)
-      .collection("images")
-      .doc(image.id)
-      .delete();
-  };
+  // const handleDelete = (image: GalleryImage) => {
+  //   db.collection(GALLERY_COLLECTION)
+  //     .doc(id)
+  //     .collection("images")
+  //     .doc(image.id)
+  //     .delete();
+  // };
 
   const handleInitMarker = () => {
     const target = createImageRef.current;
@@ -285,20 +246,20 @@ function SessionPage({ id }: SessionPageProps) {
       >
         <Tab eventKey="create" title="Create">
           <Spacer height={40} />
-          {gallery?.value && (
+          {data?.value && (
             <img
               width={500}
               height={250}
               style={{ width: "100%", height: "100%" }}
               alt="Draw on this background"
-              src={createImageRef.current?.src || gallery?.value}
+              src={createImageRef.current?.src || data?.value}
               ref={createImageRef}
               onClick={handleInitMarker}
             />
           )}
         </Tab>
         <Tab eventKey="gallery" title="Gallery">
-          {images.length > 0 && (
+          {data?.images && data?.images.length > 0 && (
             <div
               style={{
                 display: "flex",
@@ -306,7 +267,7 @@ function SessionPage({ id }: SessionPageProps) {
                 justifyContent: "center",
               }}
             >
-              {images.map((image) => {
+              {data.images.map((image) => {
                 return (
                   <div key={image.id} style={{ margin: "24px 0px 0px 24px" }}>
                     <ImageWrapper
@@ -328,14 +289,14 @@ function SessionPage({ id }: SessionPageProps) {
                         <ToggleDisabledButton
                           disabled={image.disabled}
                           onClick={() => {
-                            handleToggleDisabled(image);
+                            // handleToggleDisabled(image);
                           }}
                           style={{ cursor: "pointer " }}
                         />
                         <TrashIcon
                           width={25}
                           height={25}
-                          onClick={() => handleDelete(image)}
+                          // onClick={() => handleDelete(image)}
                           style={{ cursor: "pointer", fill: "#d00404" }}
                         />
                       </div>

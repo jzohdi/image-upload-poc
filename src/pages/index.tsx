@@ -2,14 +2,8 @@ import { useState, useEffect } from "react";
 // import firebase from "firebase/app";
 import { Divider, Spacer } from "../components/utils";
 import AppBar from "../components/AppBar";
-// import {
-//   useFirebase,
-//   TimeStamp,
-//   Protected,
-//   SnapshotSub,
-// } from "../hooks/firebase";
+import { Gallery } from "../lib/api/client";
 import { AuthProvider } from "../hooks/auth";
-import { GALLERY_COLLECTION, Gallery, GalleryImage } from "../types";
 import { toBase64 } from "../utils";
 import { createGalley, getGalleries } from "../lib/api/client";
 // bootstrap components
@@ -24,14 +18,18 @@ import Row from "react-bootstrap/Row";
 import Image from "next/image";
 import Link from "next/link";
 //lib
-import { useQuery } from "react-query";
+import { useQuery, useQueryClient } from "react-query";
+import { Spinner } from "react-bootstrap";
 
 export default function Home() {
-  const [galleries, setGalleries] = useState<Gallery[]>([]);
+  const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState<boolean>(false);
   const { isLoading, isError, data, error } = useQuery(
     "galleries",
-    getGalleries
+    getGalleries,
+    {
+      refetchInterval: 10000, // revalidate every 10s
+    }
   );
   const handleOpen = () => {
     setShowCreate(true);
@@ -40,14 +38,11 @@ export default function Home() {
   const handleClose = () => {
     setShowCreate(false);
   };
-  useEffect(() => {
-    console.log({ data, error });
-  }, [data, error]);
 
   const handleCreateNewSession = async (fileString: string): Promise<void> => {
     createGalley(fileString)
-      .then((newGallery) => {
-        console.log(newGallery);
+      .then(() => {
+        queryClient.invalidateQueries("galleries");
         handleClose();
       })
       .catch((error) => {
@@ -72,43 +67,47 @@ export default function Home() {
             show={showCreate}
             onConfirm={handleCreateNewSession}
           />
-          {galleries.length === 0 && <h2>No sessions have been created yet</h2>}
-          {galleries.map((gallery, index) => {
-            return (
-              <section key={gallery.id}>
-                <Spacer height={50} />
-                <GalleryPreview gallery={gallery} key={index} />
-                <Spacer height={40} />
-              </section>
-            );
-          })}
+          <GalleriesBody
+            galleries={data as Gallery[]}
+            isLoading={isLoading}
+            isError={isError}
+          />
         </div>
       </Container>
     </AuthProvider>
   );
 }
 
+type BodyProps = {
+  galleries: Gallery[];
+  isLoading: boolean;
+  isError: boolean;
+};
+
+function GalleriesBody({ galleries, isLoading, isError }: BodyProps) {
+  if (isLoading) {
+    return <Spinner animation="border" />;
+  }
+  if (galleries.length === 0) {
+    return <h2>No sessions have been created yet</h2>;
+  }
+  return (
+    <>
+      {galleries.map((gallery, index) => {
+        return (
+          <section key={gallery.id}>
+            <Spacer height={50} />
+            <GalleryPreview gallery={gallery} key={index} />
+            <Spacer height={40} />
+          </section>
+        );
+      })}
+    </>
+  );
+}
+
 function GalleryPreview({ gallery }: { gallery: Gallery }) {
-  const [images, setImages] = useState<GalleryImage[]>([]);
-  // const { db } = useFirebase();
-
-  // useEffect(() => {
-  //   const unsub: SnapshotSub = db
-  //     .collection(GALLERY_COLLECTION)
-  //     .doc(gallery.id)
-  //     .collection("images")
-  //     .onSnapshot((snapshot) => {
-  //       const docs = snapshot.docs.map((item) => {
-  //         return { id: item.id, ...item.data() };
-  //       });
-  //       setImages(docs as GalleryImage[]);
-  //     });
-
-  //   return () => {
-  //     unsub();
-  //   };
-  // }, []);
-
+  const images = gallery?.images ?? [];
   return (
     <Accordian>
       <span
@@ -121,12 +120,12 @@ function GalleryPreview({ gallery }: { gallery: Gallery }) {
         <Link href={`/session/${gallery.id}`}>
           <a>
             <h2>
-              {gallery.createdAt.toDate().toLocaleDateString()} ({images.length}
-              )
+              {new Date(gallery.createdAt).toLocaleDateString()} (
+              {images.length})
             </h2>
           </a>
         </Link>
-        {images.length > 0 && (
+        {gallery.images && gallery.images.length > 0 && (
           <Accordian.Toggle as={"div"} eventKey={gallery.id}>
             <Button variant="success">Click to Expand</Button>
           </Accordian.Toggle>
@@ -145,8 +144,8 @@ function GalleryPreview({ gallery }: { gallery: Gallery }) {
                 <Carousel.Item key={image.id}>
                   <Image
                     src={image.value}
-                    width={image.dimensions?.w ?? 300}
-                    height={image.dimensions?.h ?? 150}
+                    width={300}
+                    height={150}
                     layout="responsive"
                   />
                 </Carousel.Item>
