@@ -7,7 +7,14 @@ import ImageModal from "../../components/ImageModal";
 import { ShowIcon, HideIcon, TrashIcon } from "../../icons";
 // libs
 import { MarkerArea, MarkerAreaState } from "markerjs2";
-import { createImage, Gallery, getGallery } from "../../lib/api/client";
+import {
+  createImage,
+  deleteImage,
+  Gallery,
+  getGallery,
+  Image,
+  updateImage,
+} from "../../lib/api/client";
 import { prisma } from "../../lib/prisma";
 //bootstrap-react
 import Button from "react-bootstrap/Button";
@@ -19,7 +26,7 @@ import Tabs from "react-bootstrap/Tabs";
 //next
 import { GetServerSideProps } from "next";
 import ErrorPage from "next/error";
-import Image from "next/image";
+import NextImage from "next/image";
 import { useAuth } from "../../hooks/auth";
 import { useQuery, useQueryClient } from "react-query";
 
@@ -136,21 +143,21 @@ function SessionPage({ id }: SessionPageProps) {
     setUploadImage({ ...uploadImage, file: files[0] });
   };
 
-  // const handleToggleDisabled = (image: GalleryImage) => {
-  //   db.collection(GALLERY_COLLECTION)
-  //     .doc(id)
-  //     .collection("images")
-  //     .doc(image.id)
-  //     .update({ disabled: !image.disabled });
-  // };
+  const handleToggleDisabled = async (image: Image) => {
+    const { id, disabled } = image;
+    const resonse = await updateImage({ id, disabled: !disabled });
+    if (resonse) {
+      return queryClient.invalidateQueries("gallery");
+    }
+    console.error("Could not update image");
+  };
 
-  // const handleDelete = (image: GalleryImage) => {
-  //   db.collection(GALLERY_COLLECTION)
-  //     .doc(id)
-  //     .collection("images")
-  //     .doc(image.id)
-  //     .delete();
-  // };
+  const handleDelete = async (image: Image) => {
+    const resonse = await deleteImage(image.id);
+    if (resonse) {
+      queryClient.invalidateQueries("gallery");
+    }
+  };
 
   const handleInitMarker = () => {
     const target = createImageRef.current;
@@ -289,14 +296,14 @@ function SessionPage({ id }: SessionPageProps) {
                         <ToggleDisabledButton
                           disabled={image.disabled}
                           onClick={() => {
-                            // handleToggleDisabled(image);
+                            handleToggleDisabled(image);
                           }}
                           style={{ cursor: "pointer " }}
                         />
                         <TrashIcon
                           width={25}
                           height={25}
-                          // onClick={() => handleDelete(image)}
+                          onClick={() => handleDelete(image)}
                           style={{ cursor: "pointer", fill: "#d00404" }}
                         />
                       </div>

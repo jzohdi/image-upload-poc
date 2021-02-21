@@ -17,6 +17,7 @@ type Gallery {
 type Image {
   createdAt: Date!
   disabled: Boolean!
+  galleryId: String!
   id: String!
   value: String!
 }
@@ -26,6 +27,8 @@ type Mutation {
   createImage(galleryId: String!, value: String!): Image
   createUser(email: String!, password: String!): User
   deleteGallery(id: String!): Boolean
+  deleteImage(id: String!): Boolean
+  updateImage(disabled: Boolean, id: String!, value: String): Boolean
 }
 
 type Query {

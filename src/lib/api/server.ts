@@ -1,4 +1,4 @@
-import { Prisma } from "../prisma";
+import { prisma, Prisma } from "../prisma";
 import { NexusGenFieldTypes } from "../../pages/api/nexus-typegen";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -164,6 +164,60 @@ export async function createImage(
   return resonse;
 }
 
+type UpdateImageInput = { disabled?: boolean | null; value?: string | null };
+
+export async function updateImage(
+  id: string,
+  input: UpdateImageInput,
+  token: string,
+  prisma: Prisma
+): Promise<boolean> {
+  if (typeof input.disabled !== "boolean" && !input.value) {
+    return true;
+  }
+  const decoded = decodeJWT(token);
+  const isOwner = await isGalleryOwner(id, decoded.id);
+  if (!isOwner) {
+    throw new Error("Unauthorized.");
+  }
+
+  const data: any = {};
+  if (typeof input.disabled === "boolean") {
+    data.disabled = input.disabled;
+  }
+  if (input.value) {
+    data.value = input.value;
+  }
+
+  const updateImage = await prisma.image.update({
+    where: {
+      id,
+    },
+    data,
+  });
+  if (updateImage) {
+    return true;
+  }
+  return false;
+}
+
+export async function deleteImage(
+  id: string,
+  token: string,
+  prisma: Prisma
+): Promise<boolean> {
+  const decoded = decodeJWT(token);
+  const isOwner = await isGalleryOwner(id, decoded.id);
+  if (!isOwner) {
+    throw new Error("Unauthorized.");
+  }
+  const deleteImage = await prisma.image.delete({ where: { id: id } });
+  if (deleteImage) {
+    return true;
+  }
+  return false;
+}
+
 function unpackToken(token: string) {
   return token.replace("Bearer ", "");
 }
@@ -174,4 +228,21 @@ export function decodeJWT(token: string): JWTEncoding {
     throw new Error("Could not verify token.");
   }
   return decoded as JWTEncoding;
+}
+
+export async function isGalleryOwner(
+  imageId: string,
+  userId: string
+): Promise<boolean> {
+  const image = await prisma.image.findUnique({ where: { id: imageId } });
+  if (!image) {
+    throw new Error("not a valid image id");
+  }
+  const gallery = await prisma.gallery.findUnique({
+    where: { id: image.galleryId },
+  });
+  if (!gallery) {
+    throw new Error("something is wrong, invalid gallery");
+  }
+  return gallery.owner === userId;
 }

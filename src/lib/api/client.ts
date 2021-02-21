@@ -4,7 +4,7 @@ import { useAuth } from "../../hooks/auth";
 
 const USER_FIELDS = "id email token refresh";
 const GALLERY_FIELDS = "id createdAt disabled value owner";
-const IMAGE_FIELDS = "id value disabled";
+const IMAGE_FIELDS = "id value disabled galleryId";
 const ENDPOINT = "/api/graphql";
 
 let client: GraphQLClient;
@@ -25,15 +25,16 @@ export type User = NexusGenFieldTypes["User"];
 export type Image = NexusGenFieldTypes["Image"];
 export type Gallery = NexusGenFieldTypes["Gallery"];
 
+function base64ToSafe(value: string) {
+  return value.replace(/\+/g, "-").replace(/\//g, "_").replace(/\=+$/, "");
+}
+
 export async function createImage(
   value: string,
   galleryId: string
 ): Promise<Image> {
   // https://stackoverflow.com/a/7139207/8709572
-  const safeValue = value
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/\=+$/, "");
+  const safeValue = base64ToSafe(value);
   const query = gql`
     mutation AddImage($value: String!, $galleryId: String!) {
       createImage(value: $value, galleryId: $galleryId) {
@@ -77,10 +78,6 @@ export async function getGallery(
   token: string | null
 ): Promise<Gallery> {
   // dont need to be logged in
-  // const jwt = useAuth().getToken();
-  // if (!jwt) {
-  //   throw new Error("Not logged in");
-  // }
   const query = gql`query {
     gallery(id: "${id}") {
       ${GALLERY_FIELDS}
@@ -105,7 +102,7 @@ export async function getGalleries(): Promise<Gallery[] | null> {
     allGallery {
       ${GALLERY_FIELDS}
       images {
-        value
+        ${IMAGE_FIELDS}
       }
     }
   }`;
@@ -113,6 +110,43 @@ export async function getGalleries(): Promise<Gallery[] | null> {
   const result = await client.request(query);
   const unpacked = unpack(result, "allGallery");
   return unpacked as Gallery[];
+}
+
+export async function updateImage(image: Partial<Image>): Promise<boolean> {
+  if (!image.id) {
+    throw new Error("key: id required");
+  }
+  const jwt = useAuth().getToken();
+  if (!jwt) {
+    throw new Error("Not loggen in.");
+  }
+  if (image.value) {
+    image.value = base64ToSafe(image.value);
+  }
+  const query = gql`mutation {
+    updateImage(${extractObject(image)})
+  }`;
+  const client = getClient(jwt);
+  const response = await client.request(query);
+  const unpacked = unpack(response, "updateImage");
+  if (unpacked) {
+    return true;
+  }
+  return false;
+}
+
+export async function deleteImage(id: string): Promise<boolean> {
+  const jwt = useAuth().getToken();
+  if (!jwt) {
+    throw new Error("Not loggen in.");
+  }
+  const query = gql`mutation {
+    deleteImage(id: "${id}") 
+  }`;
+  const client = getClient(jwt);
+  const response = await client.request(query);
+  const unpacked = unpack(response, "deleteImage");
+  return unpacked as boolean;
 }
 
 export async function signIn(
@@ -140,6 +174,7 @@ export async function signIn(
  */
 const COLLAGE_APP_SESSIONS_TOKEN = "COLLAGE_APP_SESSIONS_TOKEN";
 const COLLAGE_APP_REFRESH_TOKEN = "COLLAGE_APP_REFRESH_TOKEN";
+
 export async function quietSignIn(): Promise<Partial<User>> {
   const token = localStorage.getItem(COLLAGE_APP_SESSIONS_TOKEN);
   const refresh = localStorage.getItem(COLLAGE_APP_REFRESH_TOKEN);
@@ -155,6 +190,8 @@ type GraphQLResponse = {
   allGallery: Gallery[];
   gallery: Gallery;
   createImage: Image;
+  updateImage: boolean;
+  deleteImage: boolean;
 };
 type UnpackType = keyof GraphQLResponse;
 
@@ -163,4 +200,29 @@ function unpack(data: GraphQLResponse | null, type: UnpackType) {
     return null;
   }
   return data[type];
+}
+
+function extractObject(obj: { [key: string]: any }): string {
+  return Object.entries(obj)
+    .map(([key, value]) => {
+      return `${key}: ${formatValue(value)}`;
+    })
+    .join(" ");
+}
+
+function formatValue(value: any): string {
+  // check if int
+  if (typeof value === "number") {
+    return `${value}`;
+  }
+  if (typeof value === "string") {
+    return `"${value}"`;
+  }
+  if (typeof value === "boolean") {
+    return `${value}`;
+  }
+  if (typeof value === "object") {
+    return extractObject(value);
+  }
+  return "";
 }

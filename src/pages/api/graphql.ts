@@ -19,6 +19,8 @@ import {
   decodeJWT,
   deleteGallery,
   createImage,
+  updateImage,
+  deleteImage,
 } from "../../lib/api/server";
 import { prisma, Context } from "../../lib/prisma";
 
@@ -57,6 +59,7 @@ const Image = objectType({
     t.nonNull.date("createdAt");
     t.nonNull.boolean("disabled");
     t.nonNull.string("value");
+    t.nonNull.string("galleryId");
   },
 });
 
@@ -71,12 +74,33 @@ const Gallery = objectType({
     t.list.field("images", {
       type: nonNull("Image"),
       resolve: (parent, _, ctx: Context) => {
+        const token = ctx.req.headers.authorization;
         if (!parent.id) {
           return null;
         }
+        let userId: string = "";
+        try {
+          userId = decodeJWT(token ?? "").id;
+        } catch (e) {}
         return ctx.prisma.image.findMany({
           where: {
-            galleryId: parent.id,
+            AND: [
+              {
+                galleryId: parent.id,
+              },
+              {
+                OR: [
+                  {
+                    disabled: false,
+                  },
+                  {
+                    gallery: {
+                      owner: userId,
+                    },
+                  },
+                ],
+              },
+            ],
           },
         });
       },
@@ -102,7 +126,7 @@ const Query = objectType({
         args: {
           id: nonNull(stringArg()),
         },
-        resolve: (_, args) => {
+        resolve: (_, args, ctx: Context) => {
           return prisma.gallery.findUnique({
             where: { id: args.id },
           });
@@ -145,6 +169,37 @@ const Mutation = objectType({
         return createImage(args, ctx.prisma);
       },
     }),
+      t.field("updateImage", {
+        type: "Boolean",
+        args: {
+          id: nonNull(stringArg()),
+          value: nullable(stringArg()),
+          disabled: nullable(booleanArg()),
+        },
+        resolve: (_, args, ctx: Context) => {
+          const token = ctx.req.headers.authorization;
+          if (!token) {
+            ctx.res.statusCode = 403;
+            throw new Error("Unauthorized");
+          }
+          const { id, ...rest } = args;
+          return updateImage(id, rest, token, ctx.prisma);
+        },
+      }),
+      t.field("deleteImage", {
+        type: "Boolean",
+        args: {
+          id: nonNull(stringArg()),
+        },
+        resolve: (_, args, ctx: Context) => {
+          const token = ctx.req.headers.authorization;
+          if (!token) {
+            ctx.res.statusCode = 403;
+            throw new Error("Unauthorized");
+          }
+          return deleteImage(args.id, token, ctx.prisma);
+        },
+      }),
       t.field("createGallery", {
         type: "Gallery",
         args: {

@@ -54,6 +54,7 @@ export interface NexusGenObjects {
   Image: { // root type
     createdAt: NexusGenScalars['Date']; // Date!
     disabled: boolean; // Boolean!
+    galleryId: string; // String!
     id: string; // String!
     value: string; // String!
   }
@@ -90,6 +91,7 @@ export interface NexusGenFieldTypes {
   Image: { // field return type
     createdAt: NexusGenScalars['Date']; // Date!
     disabled: boolean; // Boolean!
+    galleryId: string; // String!
     id: string; // String!
     value: string; // String!
   }
@@ -98,6 +100,8 @@ export interface NexusGenFieldTypes {
     createImage: NexusGenRootTypes['Image'] | null; // Image
     createUser: NexusGenRootTypes['User'] | null; // User
     deleteGallery: boolean | null; // Boolean
+    deleteImage: boolean | null; // Boolean
+    updateImage: boolean | null; // Boolean
   }
   Query: { // field return type
     allGallery: Array<NexusGenRootTypes['Gallery'] | null> | null; // [Gallery]
@@ -125,6 +129,7 @@ export interface NexusGenFieldTypeNames {
   Image: { // field return type name
     createdAt: 'Date'
     disabled: 'Boolean'
+    galleryId: 'String'
     id: 'String'
     value: 'String'
   }
@@ -133,6 +138,8 @@ export interface NexusGenFieldTypeNames {
     createImage: 'Image'
     createUser: 'User'
     deleteGallery: 'Boolean'
+    deleteImage: 'Boolean'
+    updateImage: 'Boolean'
   }
   Query: { // field return type name
     allGallery: 'Gallery'
@@ -163,6 +170,14 @@ export interface NexusGenArgTypes {
     }
     deleteGallery: { // args
       id: string; // String!
+    }
+    deleteImage: { // args
+      id: string; // String!
+    }
+    updateImage: { // args
+      disabled?: boolean | null; // Boolean
+      id: string; // String!
+      value?: string | null; // String
     }
   }
   Query: {
