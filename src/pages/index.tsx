@@ -143,7 +143,7 @@ function GalleryPreview({ gallery }: { gallery: Gallery }) {
               return (
                 <Carousel.Item key={image.id}>
                   <Image
-                    src={image.value}
+                    src={`/api/image/${image.id}`}
                     width={300}
                     height={150}
                     layout="responsive"

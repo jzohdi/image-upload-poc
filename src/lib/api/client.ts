@@ -4,7 +4,7 @@ import { useAuth } from "../../hooks/auth";
 
 const USER_FIELDS = "id email token refresh";
 const GALLERY_FIELDS = "id createdAt disabled value owner";
-const IMAGE_FIELDS = "id value disabled galleryId";
+const IMAGE_FIELDS = "id disabled galleryId";
 const ENDPOINT = "/api/graphql";
 
 let client: GraphQLClient;

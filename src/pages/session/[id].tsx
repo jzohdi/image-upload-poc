@@ -71,8 +71,12 @@ function SessionPage({ id }: SessionPageProps) {
   }
   const queryClient = useQueryClient();
   const auth = useAuth();
-  const { isLoading, data, isError, error } = useQuery("gallery", () =>
-    getGallery(id, auth.getToken())
+  const { isLoading, data, isError, error } = useQuery(
+    "gallery",
+    () => getGallery(id, auth.getToken()),
+    {
+      refetchInterval: 3000,
+    }
   );
   const [currTab, setCurrTab] = useState<"create" | "gallery">("create");
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -275,10 +279,11 @@ function SessionPage({ id }: SessionPageProps) {
               }}
             >
               {data.images.map((image) => {
+                console.log(image.id);
                 return (
                   <div key={image.id} style={{ margin: "24px 0px 0px 24px" }}>
                     <ImageWrapper
-                      src={image.value}
+                      src={`/api/image/${image.id}`}
                       onClick={handleFullScreenImage}
                       style={isOwner ? { borderRadius: "8px 8px 0px 0px" } : {}}
                       disabled={image.disabled}

@@ -143,6 +143,17 @@ export async function deleteGallery(id: string, token: string, prisma: Prisma) {
   return true;
 }
 
+export async function getImage(
+  id: string,
+  prisma: Prisma
+): Promise<Image | null> {
+  const response = await prisma.image.findUnique({ where: { id } });
+  if (!response) {
+    return null;
+  }
+  return response;
+}
+
 type CreateImageInput = {
   value: string;
   galleryId: string;
