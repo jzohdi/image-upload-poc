@@ -16,10 +16,4 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   const imageData = image.value.replace(/^data:image\/png;base64,/, "");
   res.end(imageData);
-  // const buf = Buffer.from(imageData, "base64");
-  // res.writeHead(200, {
-  //   "Content-Type": "image/png",
-  //   "Content-Length": buf.length,
-  // });
-  // res.end(buf);
 };
