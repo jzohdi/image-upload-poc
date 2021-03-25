@@ -8,7 +8,12 @@ import {
   Protected,
   SnapshotSub,
 } from "../hooks/firebase";
-import { GALLERY_COLLECTION, Gallery, GalleryImage } from "../types";
+import {
+  GALLERY_COLLECTION,
+  Gallery,
+  GalleryImage,
+  IMAGE_COLLECTION,
+} from "../types";
 import { compressImageFile, imageUrl } from "../utils";
 import { uploadImage } from "../lib/api/client";
 // bootstrap components
@@ -120,7 +125,7 @@ function GalleryPreview({ gallery }: { gallery: Gallery }) {
     const unsub: SnapshotSub = db
       .collection(GALLERY_COLLECTION)
       .doc(gallery.id)
-      .collection("images")
+      .collection(IMAGE_COLLECTION)
       .onSnapshot((snapshot) => {
         const docs = snapshot.docs.map((item) => {
           return { id: item.id, ...item.data() };
