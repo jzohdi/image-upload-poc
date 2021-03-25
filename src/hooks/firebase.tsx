@@ -16,10 +16,12 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 type FirebaseUser = firebase.User;
+export type DB = firebase.firestore.Firestore;
+export type Auth = firebase.auth.Auth;
 
 type FireBaseApps = {
-  auth: firebase.auth.Auth;
-  db: firebase.firestore.Firestore;
+  auth: Auth;
+  db: DB;
 };
 
 const FirebaseContext = createContext<FireBaseApps>({

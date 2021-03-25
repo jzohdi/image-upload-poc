@@ -1,21 +1,26 @@
 import { TimeStamp } from "./hooks/firebase";
 
 export const GALLERY_COLLECTION = "galleries";
+export const IMAGE_COLLECTION = "images";
 
 export type GalleryImage = {
   id: string;
-  value: string;
+  src: string;
   createdAt: TimeStamp;
   disabled: boolean;
-  dimensions?: {
-    w: number;
-    h: number;
-  };
+  width: number;
+  height: number;
+};
+
+export type GalleryBackground = {
+  id: string;
+  width: number;
+  height: number;
 };
 
 export type Gallery = {
   id: string;
-  value: string;
+  background: GalleryBackground;
   createdAt: TimeStamp;
   disabled: boolean;
   roles: {

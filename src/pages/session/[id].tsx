@@ -1,14 +1,26 @@
 import { useState, useEffect, useRef, CSSProperties } from "react";
 import firebase from "firebase/app";
 import "firebase/firestore";
-import { GALLERY_COLLECTION, Gallery, GalleryImage } from "../../types";
+import {
+  IMAGE_COLLECTION,
+  GALLERY_COLLECTION,
+  Gallery,
+  GalleryImage,
+} from "../../types";
 import { SnapshotSub, useFirebase } from "../../hooks/firebase";
 import AppBar from "../../components/AppBar";
 import ImageWrapper from "../../components/ImageWrapper";
 import { Spacer } from "../../components/utils";
-import { toBase64, toDataURL } from "../../utils";
+import {
+  imageUrl,
+  processHtmlImage,
+  toDataURL,
+  compressImageFile,
+  ParsedImage,
+} from "../../utils";
 import ImageModal from "../../components/ImageModal";
 import { ShowIcon, HideIcon, TrashIcon } from "../../icons";
+import { uploadImage as postImage } from "../../lib/api/client";
 // libs
 import { MarkerArea, MarkerAreaState } from "markerjs2";
 //bootstrap-react
@@ -93,7 +105,7 @@ function SessionPage({ id }: SessionPageProps) {
       unsub = db
         .collection(GALLERY_COLLECTION)
         .doc(id)
-        .collection("images")
+        .collection(IMAGE_COLLECTION)
         .where("disabled", "in", isOwner ? [true, false] : [false])
         .onSnapshot((res) => {
           const images = res.docs.map((item) => ({
@@ -132,16 +144,22 @@ function SessionPage({ id }: SessionPageProps) {
     }
   };
 
-  const handleUpload = (value: string) => {
+  const handleUpload = async (value: ParsedImage) => {
     setUploadImage({ ...uploadImage, isLoading: true });
+    const imageId = await postImage(value.base64);
+    if (!imageId) {
+      console.error("Image could not be uploaded.");
+    }
     const newImage = {
       createdAt: firebase.firestore.Timestamp.now(),
       disabled: false,
-      value,
+      src: imageId,
+      width: value.width,
+      height: value.height,
     };
     db.collection(GALLERY_COLLECTION)
       .doc(id)
-      .collection("images")
+      .collection(IMAGE_COLLECTION)
       .add(newImage)
       .then(() => {
         setUploadImage({ isLoading: false });
@@ -159,7 +177,8 @@ function SessionPage({ id }: SessionPageProps) {
     setUploadImage({ ...uploadImage, isLoading: true });
     // TODO: value must be less than 1MB
     // possible solutions (in browser): https://stackoverflow.com/questions/14672746/how-to-compress-an-image-via-javascript-in-the-browser
-    const value = await toBase64(uploadImage.file);
+    // const value = await toBase64(uploadImage.file);
+    const value = await compressImageFile(uploadImage.file);
     if (!value) {
       console.log("there was a problem");
       return;
@@ -178,7 +197,7 @@ function SessionPage({ id }: SessionPageProps) {
   const handleToggleDisabled = (image: GalleryImage) => {
     db.collection(GALLERY_COLLECTION)
       .doc(id)
-      .collection("images")
+      .collection(IMAGE_COLLECTION)
       .doc(image.id)
       .update({ disabled: !image.disabled });
   };
@@ -186,7 +205,7 @@ function SessionPage({ id }: SessionPageProps) {
   const handleDelete = (image: GalleryImage) => {
     db.collection(GALLERY_COLLECTION)
       .doc(id)
-      .collection("images")
+      .collection(IMAGE_COLLECTION)
       .doc(image.id)
       .delete();
   };
@@ -212,12 +231,11 @@ function SessionPage({ id }: SessionPageProps) {
     if (!imageEle) {
       return;
     }
-    toDataURL(imageEle.src, (value: string | null) => {
-      if (!value) {
-        return;
-      }
-      handleUpload(value);
-    });
+    processHtmlImage(imageEle)
+      .then((val: ParsedImage) => {
+        handleUpload(val);
+      })
+      .catch((err) => console.error(err));
   };
 
   const handleFullScreenImage = (src: string) => {
@@ -285,13 +303,15 @@ function SessionPage({ id }: SessionPageProps) {
       >
         <Tab eventKey="create" title="Create">
           <Spacer height={40} />
-          {gallery?.value && (
+          {gallery?.background && (
             <img
-              width={500}
-              height={250}
+              width={gallery.background.width}
+              height={gallery.background.height}
               style={{ width: "100%", height: "100%" }}
               alt="Draw on this background"
-              src={createImageRef.current?.src || gallery?.value}
+              src={
+                createImageRef.current?.src || imageUrl(gallery.background.id)
+              }
               ref={createImageRef}
               onClick={handleInitMarker}
             />
@@ -310,7 +330,7 @@ function SessionPage({ id }: SessionPageProps) {
                 return (
                   <div key={image.id} style={{ margin: "24px 0px 0px 24px" }}>
                     <ImageWrapper
-                      src={image.value}
+                      src={imageUrl(image.src)}
                       onClick={handleFullScreenImage}
                       style={isOwner ? { borderRadius: "8px 8px 0px 0px" } : {}}
                       disabled={image.disabled}

@@ -57,12 +57,23 @@ function ImageWrapper({
           margin: 15,
         }}
       >
-        <Image
+        <img
+          alt="Uploaded Image"
+          src={src}
+          style={{
+            width: "auto",
+            height: "auto",
+            maxWidth: "100%",
+            maxHeight: "100%",
+            position: "absolute",
+          }}
+        />
+        {/* <Image
           src={src}
           layout="fill"
           objectFit="contain"
           objectPosition="50% 50%"
-        />
+        /> */}
       </div>
     </div>
   );
