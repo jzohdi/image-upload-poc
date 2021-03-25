@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "set ANALYZE=false && next dev",
-    "build": "set ANALYZE=false && next build",
+    "build": "set ANALYZE=false && yarn prisma introspect && yarn prisma generate && next build",
     "start": "set ANALYZE=false && next start",
     "analyze": "set ANALYZE=true && next build"
   },
