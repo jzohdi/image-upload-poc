@@ -9,7 +9,8 @@ import {
   SnapshotSub,
 } from "../hooks/firebase";
 import { GALLERY_COLLECTION, Gallery, GalleryImage } from "../types";
-import { toBase64 } from "../utils";
+import { compressImage } from "../utils";
+import { uploadImage } from "../lib/api/client";
 // bootstrap components
 import Carousel from "react-bootstrap/Carousel";
 import Container from "react-bootstrap/Container";
@@ -26,7 +27,7 @@ export default function Home() {
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [showCreate, setShowCreate] = useState<boolean>(false);
   const { auth, db } = useFirebase();
-
+  const [test, setTest] = useState("");
   const handleOpen = () => {
     setShowCreate(true);
   };
@@ -35,24 +36,38 @@ export default function Home() {
     setShowCreate(false);
   };
 
-  const handleCreateNewSession = async (fileString: string): Promise<void> => {
+  const handleCreateNewSession = async (background: File): Promise<void> => {
     if (!auth.currentUser?.uid) {
       return;
     }
+    // get image as base64 string
+    const parsedBackground = await compressImage(background);
+    if (parsedBackground === null) {
+      throw new Error("File provided could not be parsed.");
+    }
+    const { base64, width, height } = parsedBackground;
+    // setTest(base64);
+    // return;
+    const imageId = await uploadImage(base64);
     db.collection(GALLERY_COLLECTION)
       .add({
         createdAt: firebase.firestore.Timestamp.now(),
         disabled: false,
         roles: { [auth.currentUser.uid]: "owner" },
-        value: fileString,
+        background: {
+          id: imageId,
+          width,
+          height,
+        },
       })
       .then((res) => {
-        console.log(res);
+        // console.log(res);
+        handleClose();
       })
       .catch((err) => {
         console.log("error creating a new session", err);
+        handleClose();
       });
-    handleClose();
   };
 
   useEffect(() => {
@@ -75,6 +90,7 @@ export default function Home() {
             <h1>Sessions</h1>
             <Button onClick={handleOpen}>Create New</Button>
           </div>
+          {/* <img alt="testImage" src={test} /> */}
           <NewSessionModal
             onClose={handleClose}
             show={showCreate}
@@ -152,9 +168,9 @@ function GalleryPreview({ gallery }: { gallery: Gallery }) {
               return (
                 <Carousel.Item key={image.id}>
                   <Image
-                    src={image.value}
-                    width={image.dimensions?.w ?? 300}
-                    height={image.dimensions?.h ?? 150}
+                    src={image.src}
+                    width={image.width}
+                    height={image.height}
                     layout="responsive"
                   />
                 </Carousel.Item>
@@ -169,7 +185,7 @@ function GalleryPreview({ gallery }: { gallery: Gallery }) {
 
 type NewSessionModalProps = {
   onClose: () => void;
-  onConfirm: (file: string) => Promise<void>;
+  onConfirm: (file: File) => Promise<void>;
   show: boolean;
 };
 
@@ -186,18 +202,14 @@ function NewSessionModal({ onClose, show, onConfirm }: NewSessionModalProps) {
 
   const handleConfirm = async () => {
     if (!uploadImage.file) {
-      return;
-    }
-    setUploadImage({ ...uploadImage, isLoading: true });
-    const value = await toBase64(uploadImage.file);
-    if (!value) {
       return setUploadImage({
         ...uploadImage,
         isLoading: false,
-        error: "File could not be parsed.",
+        error: "Please provide an image for the session background.",
       });
     }
-    onConfirm(value)
+    setUploadImage({ ...uploadImage, isLoading: true });
+    onConfirm(uploadImage.file)
       .then(() => {
         return setUploadImage({ isLoading: false });
       })

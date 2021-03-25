@@ -6,7 +6,7 @@ import { SnapshotSub, useFirebase } from "../../hooks/firebase";
 import AppBar from "../../components/AppBar";
 import ImageWrapper from "../../components/ImageWrapper";
 import { Spacer } from "../../components/utils";
-import { toBase64, toDataURL } from "../../utils";
+import { imageUrl, toBase64, toDataURL } from "../../utils";
 import ImageModal from "../../components/ImageModal";
 import { ShowIcon, HideIcon, TrashIcon } from "../../icons";
 // libs
@@ -285,13 +285,15 @@ function SessionPage({ id }: SessionPageProps) {
       >
         <Tab eventKey="create" title="Create">
           <Spacer height={40} />
-          {gallery?.value && (
+          {gallery?.background && (
             <img
-              width={500}
-              height={250}
+              width={gallery.background.width}
+              height={gallery.background.height}
               style={{ width: "100%", height: "100%" }}
               alt="Draw on this background"
-              src={createImageRef.current?.src || gallery?.value}
+              src={
+                createImageRef.current?.src || imageUrl(gallery.background.id)
+              }
               ref={createImageRef}
               onClick={handleInitMarker}
             />
@@ -310,7 +312,7 @@ function SessionPage({ id }: SessionPageProps) {
                 return (
                   <div key={image.id} style={{ margin: "24px 0px 0px 24px" }}>
                     <ImageWrapper
-                      src={image.value}
+                      src={imageUrl(image.value)}
                       onClick={handleFullScreenImage}
                       style={isOwner ? { borderRadius: "8px 8px 0px 0px" } : {}}
                       disabled={image.disabled}
