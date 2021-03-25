@@ -1,6 +1,7 @@
 import { TimeStamp } from "./hooks/firebase";
 
 export const GALLERY_COLLECTION = "galleries";
+export const IMAGE_COLLECTION = "images";
 
 export type GalleryImage = {
   id: string;

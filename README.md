@@ -23,6 +23,21 @@ The goal is for a user to sign up, and be able to create a gallery where unauthe
 
 In a first iteration (V0) of this POC I set up the implementation with pure Firestore. This worked out nicely for handling permissions and data, and would not cost money until scaling past the free tier.
 
+Changed NextJS server code for parseing image src as does not work with a readable stream.
+
+```javascript
+bodyParser && !apiReq.body;
+```
+
+changeed to
+
+```javascript
+bodyParser && !apiReq.body && typeof apiReq.on === "function";
+```
+
+PR addressing this changed:
+https://github.com/vercel/next.js/pull/21120
+
 ### V0
 
 #### Firestore permissions

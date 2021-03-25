@@ -1,4 +1,4 @@
-export type ParsedSessionBackground = {
+export type ParsedImage = {
   base64: string;
   width: number;
   height: number;
@@ -17,7 +17,7 @@ export async function toBase64(file: File): Promise<string | null> {
 
 async function fileToObjectUrl(file: File): Promise<string> {
   if (!isBrowser()) {
-    throw new Error("compressImage is meant for use in the browser only.");
+    throw new Error("compressImageFile is meant for use in the browser only.");
   }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -37,11 +37,11 @@ const MAX_FILE_SIZE = TARGET_WIDTH * MAX_HEIGHT;
 const RESIZE_BY = 0.9; // scale down to 90% each step
 const INVERSE = 1 / RESIZE_BY;
 
-export async function compressImage(
+export async function compressImageFile(
   file: File
-): Promise<ParsedSessionBackground | null> {
+): Promise<ParsedImage | null> {
   if (!isBrowser()) {
-    throw new Error("compressImage is meant for use in the browser only.");
+    throw new Error("compressImageFile is meant for use in the browser only.");
   }
   const asUrl = await fileToObjectUrl(file);
   const asImage = await toImage(asUrl);
@@ -57,6 +57,32 @@ export async function compressImage(
   return { base64, width: asImage.width, height: asImage.height };
 }
 
+export async function processHtmlImage(
+  asImage: HTMLImageElement
+): Promise<ParsedImage> {
+  // if the size of the image is already not too large, return the base64
+  if (asImage.width * asImage.height > MAX_FILE_SIZE) {
+    return resizeImage(asImage);
+  }
+  const base64 = htmlImageToBase64(asImage);
+  if (!base64) {
+    throw new Error("toBase64 failed on file.");
+  }
+  return { base64, width: asImage.width, height: asImage.height };
+}
+
+function htmlImageToBase64(img: HTMLImageElement): string {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Could not get canvas context.");
+  }
+  canvas.height = img.naturalHeight;
+  canvas.width = img.naturalWidth;
+  ctx.drawImage(img, 0, 0);
+  return canvas.toDataURL();
+}
+
 async function toImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, _) => {
     const img = new Image();
@@ -68,7 +94,7 @@ async function toImage(src: string): Promise<HTMLImageElement> {
 }
 
 // linear interpolation to resize image
-function resizeImage(img: HTMLImageElement): ParsedSessionBackground {
+function resizeImage(img: HTMLImageElement): ParsedImage {
   const canvas = document.createElement("canvas"),
     ctx = canvas.getContext("2d"),
     oc = document.createElement("canvas"),

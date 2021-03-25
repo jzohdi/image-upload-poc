@@ -9,7 +9,7 @@ import {
   SnapshotSub,
 } from "../hooks/firebase";
 import { GALLERY_COLLECTION, Gallery, GalleryImage } from "../types";
-import { compressImage } from "../utils";
+import { compressImageFile, imageUrl } from "../utils";
 import { uploadImage } from "../lib/api/client";
 // bootstrap components
 import Carousel from "react-bootstrap/Carousel";
@@ -41,7 +41,7 @@ export default function Home() {
       return;
     }
     // get image as base64 string
-    const parsedBackground = await compressImage(background);
+    const parsedBackground = await compressImageFile(background);
     if (parsedBackground === null) {
       throw new Error("File provided could not be parsed.");
     }
@@ -168,7 +168,7 @@ function GalleryPreview({ gallery }: { gallery: Gallery }) {
               return (
                 <Carousel.Item key={image.id}>
                   <Image
-                    src={image.src}
+                    src={imageUrl(image.src)}
                     width={image.width}
                     height={image.height}
                     layout="responsive"
